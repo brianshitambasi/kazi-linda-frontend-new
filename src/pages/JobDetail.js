@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { jobAPI, applicationAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Container, Row, Col, Card, Button, Spinner, Alert, Badge } from 'react-bootstrap';
-import { FaMapMarkerAlt, FaMoneyBillWave, FaBuilding, FaCheckCircle, FaArrowLeft, FaClock, FaBriefcase, FaShieldAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaMoneyBillWave, FaBuilding, FaCheckCircle, FaArrowLeft, FaClock, FaShieldAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const JobDetail = () => {
@@ -15,12 +15,7 @@ const JobDetail = () => {
   const [applying, setApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
 
-  useEffect(() => {
-    fetchJob();
-    checkIfApplied();
-  }, [id]);
-
-  const fetchJob = async () => {
+  const fetchJob = useCallback(async () => {
     try {
       const res = await jobAPI.getById(id);
       setJob(res.data);
@@ -30,9 +25,9 @@ const JobDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const checkIfApplied = async () => {
+  const checkIfApplied = useCallback(async () => {
     if (!user) return;
     try {
       const res = await applicationAPI.getMy();
@@ -41,7 +36,12 @@ const JobDetail = () => {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [user, id]);
+
+  useEffect(() => {
+    fetchJob();
+    checkIfApplied();
+  }, [fetchJob, checkIfApplied]);
 
   const handleApply = async () => {
     if (!user) {

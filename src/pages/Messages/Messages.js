@@ -4,7 +4,6 @@ import { messageAPI, profileAPI } from '../../services/api';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image, Modal } from 'react-bootstrap';
 import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaStar, FaGraduationCap, FaCertificate, FaLanguage } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import moment from 'moment';
 
 const Messages = () => {
   const { user } = useAuth();
@@ -16,6 +15,7 @@ const Messages = () => {
   const [sending, setSending] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -46,6 +46,7 @@ const Messages = () => {
   const fetchConversations = async () => {
     try {
       const res = await messageAPI.getConversations();
+      console.log('Conversations:', res.data);
       setConversations(res.data);
     } catch (err) {
       console.error(err);
@@ -83,6 +84,7 @@ const Messages = () => {
       await fetchConversations();
       toast.success('Message sent');
     } catch (err) {
+      console.error('Send error:', err);
       toast.error('Failed to send message');
     } finally {
       setSending(false);
@@ -90,12 +92,17 @@ const Messages = () => {
   };
 
   const viewUserProfile = async (userId) => {
+    setProfileLoading(true);
     try {
       const res = await profileAPI.getPublicProfile(userId);
+      console.log('Profile data:', res.data);
       setUserProfile(res.data);
       setShowProfileModal(true);
     } catch (err) {
-      toast.error('Failed to load profile');
+      console.error('Profile fetch error:', err);
+      toast.error('Failed to load profile: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -114,12 +121,19 @@ const Messages = () => {
 
   const getRatingStars = (rating) => {
     const stars = [];
+    const numRating = rating || 0;
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <FaStar key={i} className={i <= (rating || 0) ? 'text-warning' : 'text-muted'} size={14} />
+        <FaStar key={i} className={i <= numRating ? 'text-warning' : 'text-muted'} size={14} />
       );
     }
     return stars;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading) {
@@ -286,7 +300,7 @@ const Messages = () => {
                           )}
                           <p className="mb-0">{msg.message}</p>
                           <small className="text-muted d-block mt-1">
-                            {moment(msg.createdAt).format('HH:mm')}
+                            {formatDate(msg.createdAt)}
                           </small>
                         </div>
                       </div>
@@ -330,11 +344,16 @@ const Messages = () => {
         <Modal.Header closeButton className="bg-warning">
           <Modal.Title>
             <FaUserCircle className="me-2" />
-            {userProfile?.name}
+            {userProfile?.name || 'User Profile'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {userProfile && (
+          {profileLoading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="warning" />
+              <p className="mt-2">Loading profile...</p>
+            </div>
+          ) : userProfile ? (
             <Row>
               <Col md={4} className="text-center">
                 {userProfile.profilePicture ? (
@@ -353,7 +372,7 @@ const Messages = () => {
                   {getRatingStars(userProfile.rating || 0)}
                   <span className="ms-2">({userProfile.totalRatings || 0})</span>
                 </div>
-                {getStatusBadge(userProfile.currentStatus)}
+                {userProfile.currentStatus && getStatusBadge(userProfile.currentStatus)}
               </Col>
               <Col md={8}>
                 <h6>About</h6>
@@ -366,7 +385,7 @@ const Messages = () => {
                   Currently: {userProfile.currentCountry || 'Not specified'}
                 </p>
                 
-                {userProfile.skills?.length > 0 && (
+                {userProfile.skills && userProfile.skills.length > 0 && (
                   <>
                     <h6>Skills</h6>
                     <div>
@@ -377,7 +396,7 @@ const Messages = () => {
                   </>
                 )}
                 
-                {userProfile.languages?.length > 0 && (
+                {userProfile.languages && userProfile.languages.length > 0 && (
                   <>
                     <h6>Languages</h6>
                     {userProfile.languages.map((lang, idx) => (
@@ -389,7 +408,7 @@ const Messages = () => {
                   </>
                 )}
                 
-                {userProfile.education?.length > 0 && (
+                {userProfile.education && userProfile.education.length > 0 && (
                   <>
                     <h6>Education</h6>
                     {userProfile.education.map((edu, idx) => (
@@ -401,7 +420,7 @@ const Messages = () => {
                   </>
                 )}
                 
-                {userProfile.certifications?.length > 0 && (
+                {userProfile.certifications && userProfile.certifications.length > 0 && (
                   <>
                     <h6>Certifications</h6>
                     {userProfile.certifications.map((cert, idx) => (
@@ -414,6 +433,10 @@ const Messages = () => {
                 )}
               </Col>
             </Row>
+          ) : (
+            <div className="text-center py-5 text-muted">
+              No profile information available
+            </div>
           )}
         </Modal.Body>
         <Modal.Footer>
