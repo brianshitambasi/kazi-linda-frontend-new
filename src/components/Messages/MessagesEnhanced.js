@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { messageAPI, profileAPI } from '../../services/api';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image, Modal } from 'react-bootstrap';
-import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaStar, FaGraduationCap, FaCertificate, FaLanguage } from 'react-icons/fa';
+import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaBriefcase, FaLanguage, FaStar, FaRegClock, FaCheckCircle, FaGraduationCap, FaCertificate, FaHeart } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import moment from 'moment';
 
@@ -108,7 +108,7 @@ const Messages = () => {
       'returned': { variant: 'info', text: 'Returned' },
       'distress': { variant: 'danger', text: 'Distress' }
     };
-    const config = statusConfig[status] || { variant: 'secondary', text: status || 'Unknown' };
+    const config = statusConfig[status] || { variant: 'secondary', text: status };
     return <Badge bg={config.variant}>{config.text}</Badge>;
   };
 
@@ -116,7 +116,7 @@ const Messages = () => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <FaStar key={i} className={i <= (rating || 0) ? 'text-warning' : 'text-muted'} size={14} />
+        <FaStar key={i} className={i <= rating ? 'text-warning' : 'text-muted'} size={14} />
       );
     }
     return stars;
@@ -132,19 +132,12 @@ const Messages = () => {
 
   return (
     <Container fluid className="py-4">
-      <h2 className="mb-4">
-        Messages 
-        <Badge bg="warning" className="ms-2">
-          {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
-        </Badge>
-      </h2>
+      <h2 className="mb-4">Messages</h2>
       
       <Row>
         <Col md={4} lg={3}>
           <Card className="shadow-sm">
-            <Card.Header className="bg-white fw-bold">
-              Conversations ({conversations.length})
-            </Card.Header>
+            <Card.Header className="bg-white fw-bold">Conversations</Card.Header>
             <ListGroup variant="flush" style={{ maxHeight: '600px', overflowY: 'auto' }}>
               {conversations.length === 0 ? (
                 <ListGroup.Item className="text-center text-muted py-5">
@@ -225,12 +218,6 @@ const Messages = () => {
                     <strong>{selectedUser.name}</strong>
                     <div>
                       {getStatusBadge(selectedUser.currentStatus)}
-                      {selectedUser.currentCountry && (
-                        <span className="ms-2 text-muted small">
-                          <FaMapMarkerAlt className="me-1" />
-                          {selectedUser.currentCountry}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -281,7 +268,6 @@ const Messages = () => {
                           {!isOwn && (
                             <small className="text-muted d-block mb-1">
                               <strong>{sender?.name}</strong>
-                              {sender?.role && <span className="ms-1">({sender.role})</span>}
                             </small>
                           )}
                           <p className="mb-0">{msg.message}</p>
@@ -377,41 +363,13 @@ const Messages = () => {
                   </>
                 )}
                 
-                {userProfile.languages?.length > 0 && (
-                  <>
-                    <h6>Languages</h6>
-                    {userProfile.languages.map((lang, idx) => (
-                      <div key={idx}>
-                        <FaLanguage className="me-1" />
-                        <strong>{lang.name}</strong> - {lang.proficiency}
-                      </div>
-                    ))}
-                  </>
-                )}
-                
-                {userProfile.education?.length > 0 && (
-                  <>
-                    <h6>Education</h6>
-                    {userProfile.education.map((edu, idx) => (
-                      <div key={idx} className="mb-2">
-                        <FaGraduationCap className="me-1" />
-                        <strong>{edu.degree}</strong> - {edu.institution} ({edu.year})
-                      </div>
-                    ))}
-                  </>
-                )}
-                
-                {userProfile.certifications?.length > 0 && (
-                  <>
-                    <h6>Certifications</h6>
-                    {userProfile.certifications.map((cert, idx) => (
-                      <div key={idx} className="mb-2">
-                        <FaCertificate className="me-1" />
-                        <strong>{cert.name}</strong> - {cert.issuer}
-                      </div>
-                    ))}
-                  </>
-                )}
+                <h6>Languages</h6>
+                {userProfile.languages?.map((lang, idx) => (
+                  <div key={idx}>
+                    <FaLanguage className="me-1" />
+                    <strong>{lang.name}</strong> - {lang.proficiency}
+                  </div>
+                ))}
               </Col>
             </Row>
           )}
