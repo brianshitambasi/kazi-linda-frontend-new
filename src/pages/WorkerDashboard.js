@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { applicationAPI } from '../services/api';
 import { Container, Row, Col, Card, Spinner, Table, Button } from 'react-bootstrap';
-import { FaBriefcase, FaCheckCircle, FaClock, FaStar, FaUser } from 'react-icons/fa';
+import { FaBriefcase, FaCheckCircle, FaClock, FaStar, FaUserCircle } from 'react-icons/fa';
 
 const WorkerDashboard = () => {
   const { user } = useAuth();
@@ -48,7 +48,12 @@ const WorkerDashboard = () => {
 
   return (
     <Container className="py-4">
-      <h1 className="mb-4">Welcome, {user?.name?.split(' ')[0]}!</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="mb-0">Welcome, {user?.name?.split(' ')[0]}!</h1>
+        <Button as={Link} to="/profile/edit" variant="outline-warning">
+          <FaUserCircle className="me-2" /> Edit Profile
+        </Button>
+      </div>
       
       <Row className="g-4 mb-5">
         <Col md={3}>

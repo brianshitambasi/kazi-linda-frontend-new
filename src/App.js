@@ -12,12 +12,15 @@ import Applications from './pages/Applications';
 import VerifyEmployer from './pages/VerifyEmployer';
 import Blacklist from './pages/Blacklist';
 import Login from './pages/Login';
-import Register from './pages/Register';
+import RegisterEnhanced from './pages/RegisterEnhanced';
 import WorkerDashboard from './pages/WorkerDashboard';
 import EmployerDashboard from './pages/EmployerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmbassyDashboard from './pages/EmbassyDashboard';
 import Messages from './pages/Messages/Messages';
+import ProfileEdit from './pages/ProfileEdit';
+import SocialFeed from './components/SocialFeed';
+import Friends from './pages/Friends';
 
 function App() {
   return (
@@ -32,19 +35,22 @@ function App() {
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<RegisterEnhanced />} />
             
             {/* Protected Routes */}
             <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
             <Route path="/verify" element={<ProtectedRoute><VerifyEmployer /></ProtectedRoute>} />
             <Route path="/blacklist" element={<ProtectedRoute><Blacklist /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+            <Route path="/news" element={<ProtectedRoute><SocialFeed /></ProtectedRoute>} />
+            <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             
             {/* Role-Specific Dashboards */}
-            <Route path="/dashboard" element={<ProtectedRoute workerOnly><WorkerDashboard /></ProtectedRoute>} />
-            <Route path="/employer/dashboard" element={<ProtectedRoute employerOnly><EmployerDashboard /></ProtectedRoute>} />
-            <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/embassy/dashboard" element={<ProtectedRoute embassyOnly><EmbassyDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><WorkerDashboard /></ProtectedRoute>} />
+            <Route path="/employer/dashboard" element={<ProtectedRoute><EmployerDashboard /></ProtectedRoute>} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/embassy/dashboard" element={<ProtectedRoute><EmbassyDashboard /></ProtectedRoute>} />
           </Routes>
         </Layout>
       </BrowserRouter>

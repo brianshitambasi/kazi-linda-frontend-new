@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { messageAPI, profileAPI } from '../../services/api';
-import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image, Modal } from 'react-bootstrap';
-import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaStar, FaGraduationCap, FaCertificate, FaLanguage } from 'react-icons/fa';
+import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image } from 'react-bootstrap';
+import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt } from 'react-icons/fa';
+import ProfileModal from '../../components/ProfileModal';
 import toast from 'react-hot-toast';
 
 const Messages = () => {
@@ -14,8 +15,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -46,7 +46,6 @@ const Messages = () => {
   const fetchConversations = async () => {
     try {
       const res = await messageAPI.getConversations();
-      console.log('Conversations:', res.data);
       setConversations(res.data);
     } catch (err) {
       console.error(err);
@@ -91,19 +90,9 @@ const Messages = () => {
     }
   };
 
-  const viewUserProfile = async (userId) => {
-    setProfileLoading(true);
-    try {
-      const res = await profileAPI.getPublicProfile(userId);
-      console.log('Profile data:', res.data);
-      setUserProfile(res.data);
-      setShowProfileModal(true);
-    } catch (err) {
-      console.error('Profile fetch error:', err);
-      toast.error('Failed to load profile: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setProfileLoading(false);
-    }
+  const viewUserProfile = (userId) => {
+    setSelectedProfileUserId(userId);
+    setShowProfileModal(true);
   };
 
   const getStatusBadge = (status) => {
@@ -117,17 +106,6 @@ const Messages = () => {
     };
     const config = statusConfig[status] || { variant: 'secondary', text: status || 'Unknown' };
     return <Badge bg={config.variant}>{config.text}</Badge>;
-  };
-
-  const getRatingStars = (rating) => {
-    const stars = [];
-    const numRating = rating || 0;
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <FaStar key={i} className={i <= numRating ? 'text-warning' : 'text-muted'} size={14} />
-      );
-    }
-    return stars;
   };
 
   const formatDate = (date) => {
@@ -340,115 +318,15 @@ const Messages = () => {
         </Col>
       </Row>
       
-      <Modal show={showProfileModal} onHide={() => setShowProfileModal(false)} size="lg">
-        <Modal.Header closeButton className="bg-warning">
-          <Modal.Title>
-            <FaUserCircle className="me-2" />
-            {userProfile?.name || 'User Profile'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {profileLoading ? (
-            <div className="text-center py-5">
-              <Spinner animation="border" variant="warning" />
-              <p className="mt-2">Loading profile...</p>
-            </div>
-          ) : userProfile ? (
-            <Row>
-              <Col md={4} className="text-center">
-                {userProfile.profilePicture ? (
-                  <Image 
-                    src={userProfile.profilePicture} 
-                    roundedCircle 
-                    width="150" 
-                    height="150" 
-                    className="mb-3"
-                    style={{ objectFit: 'cover' }}
-                  />
-                ) : (
-                  <FaUserCircle size={150} className="text-muted mb-3" />
-                )}
-                <div>
-                  {getRatingStars(userProfile.rating || 0)}
-                  <span className="ms-2">({userProfile.totalRatings || 0})</span>
-                </div>
-                {userProfile.currentStatus && getStatusBadge(userProfile.currentStatus)}
-              </Col>
-              <Col md={8}>
-                <h6>About</h6>
-                <p>{userProfile.bio || 'No bio provided'}</p>
-                
-                <h6>Location</h6>
-                <p>
-                  <FaMapMarkerAlt className="me-1" />
-                  From: {userProfile.countryOfOrigin || 'Not specified'}<br />
-                  Currently: {userProfile.currentCountry || 'Not specified'}
-                </p>
-                
-                {userProfile.skills && userProfile.skills.length > 0 && (
-                  <>
-                    <h6>Skills</h6>
-                    <div>
-                      {userProfile.skills.map((skill, idx) => (
-                        <Badge key={idx} bg="info" className="me-1 mb-1">{skill}</Badge>
-                      ))}
-                    </div>
-                  </>
-                )}
-                
-                {userProfile.languages && userProfile.languages.length > 0 && (
-                  <>
-                    <h6>Languages</h6>
-                    {userProfile.languages.map((lang, idx) => (
-                      <div key={idx}>
-                        <FaLanguage className="me-1" />
-                        <strong>{lang.name}</strong> - {lang.proficiency}
-                      </div>
-                    ))}
-                  </>
-                )}
-                
-                {userProfile.education && userProfile.education.length > 0 && (
-                  <>
-                    <h6>Education</h6>
-                    {userProfile.education.map((edu, idx) => (
-                      <div key={idx} className="mb-2">
-                        <FaGraduationCap className="me-1" />
-                        <strong>{edu.degree}</strong> - {edu.institution} ({edu.year})
-                      </div>
-                    ))}
-                  </>
-                )}
-                
-                {userProfile.certifications && userProfile.certifications.length > 0 && (
-                  <>
-                    <h6>Certifications</h6>
-                    {userProfile.certifications.map((cert, idx) => (
-                      <div key={idx} className="mb-2">
-                        <FaCertificate className="me-1" />
-                        <strong>{cert.name}</strong> - {cert.issuer}
-                      </div>
-                    ))}
-                  </>
-                )}
-              </Col>
-            </Row>
-          ) : (
-            <div className="text-center py-5 text-muted">
-              No profile information available
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="warning" onClick={() => {
-            setShowProfileModal(false);
-            if (userProfile) setSelectedUser(userProfile);
-          }}>
-            <FaPaperPlane className="me-1" /> Send Message
-          </Button>
-          <Button variant="secondary" onClick={() => setShowProfileModal(false)}>Close</Button>
-        </Modal.Footer>
-      </Modal>
+      <ProfileModal 
+        userId={selectedProfileUserId}
+        show={showProfileModal}
+        onHide={() => setShowProfileModal(false)}
+        onSendMessage={(user) => {
+          setSelectedUser(user);
+          setShowProfileModal(false);
+        }}
+      />
     </Container>
   );
 };
