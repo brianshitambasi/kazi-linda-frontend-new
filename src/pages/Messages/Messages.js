@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { messageAPI, profileAPI } from '../../services/api';
+import { messageAPI } from '../../services/api';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image } from 'react-bootstrap';
 import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt } from 'react-icons/fa';
 import ProfileModal from '../../components/ProfileModal';

@@ -1,21 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Button, Card, Spinner } from 'react-bootstrap';
-import { 
-  FaShieldAlt, FaBriefcase, FaUsers, FaGlobeAfrica, FaArrowRight, 
-  FaCheckCircle, FaStar, FaClock, FaMoneyBillWave 
-} from 'react-icons/fa';
+import { FaShieldAlt, FaBriefcase, FaUsers, FaGlobeAfrica, FaArrowRight, FaStar } from 'react-icons/fa';
 import { jobAPI } from '../services/api';
 
 const Home = () => {
   const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    jobs: 0,
-    workers: 0,
-    countries: 0,
-    rating: 4.8
-  });
+  const [stats, setStats] = useState({ jobs: 0, workers: 0, countries: 0, rating: 4.8 });
 
   useEffect(() => {
     fetchData();
@@ -34,21 +26,28 @@ const Home = () => {
   };
 
   const features = [
-    { icon: FaBriefcase, title: 'Verified Jobs', desc: 'All jobs are vetted for your safety and legitimacy' },
-    { icon: FaShieldAlt, title: 'Employer Verification', desc: 'Check if an employer is legitimate before accepting' },
-    { icon: FaGlobeAfrica, title: 'Global Opportunities', desc: 'Jobs in Kenya, Gulf countries, Europe, and beyond' },
-    { icon: FaUsers, title: 'Worker Community', desc: 'Connect with other workers and share experiences' }
+    { icon: FaBriefcase, title: 'Verified Jobs', desc: 'All jobs are vetted for your safety' },
+    { icon: FaShieldAlt, title: 'Employer Verification', desc: 'Check employer legitimacy' },
+    { icon: FaGlobeAfrica, title: 'Global Opportunities', desc: 'Jobs in Kenya, Gulf countries, Europe' },
+    { icon: FaUsers, title: 'Worker Community', desc: 'Connect with other workers' }
   ];
 
   const testimonials = [
-    { name: 'Mary Wanjiku', role: 'House Help in Riyadh', text: 'KAZI LINDA helped me find a legitimate job. I feel safe knowing my employer is verified!', rating: 5 },
-    { name: 'John Kamau', role: 'Driver in Dubai', text: 'The blacklist feature saved me from a scam employer. Highly recommend!', rating: 5 },
-    { name: 'Sarah Otieno', role: 'Nanny in Nairobi', text: 'Easy to use and very helpful. Found a great job within days.', rating: 4 }
+    { name: 'Mary Wanjiku', role: 'House Help in Riyadh', text: 'KAZI LINDA helped me find a legitimate job!', rating: 5 },
+    { name: 'John Kamau', role: 'Driver in Dubai', text: 'The blacklist feature saved me from a scam!', rating: 5 },
+    { name: 'Sarah Otieno', role: 'Nanny in Nairobi', text: 'Easy to use and very helpful!', rating: 4 }
   ];
+
+  if (loading) {
+    return (
+      <div className="text-center mt-5">
+        <Spinner animation="border" variant="warning" />
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Hero Section */}
       <div className="bg-dark text-white py-5 rounded-3 mb-5" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' }}>
         <Container className="py-5 text-center">
           <FaShieldAlt size={80} className="mb-4 text-warning" />
@@ -56,18 +55,17 @@ const Home = () => {
           <p className="lead mb-3">Safe Jobs for Kenyans at Home and Abroad</p>
           <p className="mb-4">Find verified jobs, protect yourself from exploitation, and stay safe wherever you work.</p>
           <div className="d-flex gap-3 justify-content-center flex-wrap">
-            <Button as={Link} to="/jobs" variant="warning" size="lg" className="px-4">
-              Find Jobs <FaArrowRight className="ms-2" />
+            <Button as={Link} to="/jobs" variant="warning" size="lg">
+              <FaBriefcase className="me-2" /> Find Jobs <FaArrowRight className="ms-2" />
             </Button>
-            <Button as={Link} to="/verify" variant="outline-light" size="lg" className="px-4">
-              Verify Employer
+            <Button as={Link} to="/verify" variant="outline-light" size="lg">
+              <FaShieldAlt className="me-2" /> Verify Employer
             </Button>
           </div>
         </Container>
       </div>
 
       <Container>
-        {/* Stats Section */}
         <Row className="text-center mb-5 g-4">
           <Col md={4}>
             <div className="p-3 bg-light rounded-3">
@@ -89,12 +87,11 @@ const Home = () => {
           </Col>
         </Row>
 
-        {/* Features Section */}
         <h2 className="text-center mb-4">Why Choose KAZI LINDA?</h2>
         <Row className="mb-5 g-4">
           {features.map((feature, idx) => (
             <Col md={3} key={idx}>
-              <Card className="h-100 shadow-sm border-0 text-center hover-card">
+              <Card className="h-100 text-center border-0 shadow-sm">
                 <Card.Body>
                   <feature.icon size={45} className="text-warning mb-3" />
                   <Card.Title>{feature.title}</Card.Title>
@@ -105,37 +102,29 @@ const Home = () => {
           ))}
         </Row>
 
-        {/* Recent Jobs Section */}
         <h2 className="text-center mb-4">Recent Job Opportunities</h2>
-        {loading ? (
-          <div className="text-center py-5"><Spinner animation="border" variant="warning" /></div>
-        ) : recentJobs.length > 0 ? (
-          <Row className="mb-5 g-4">
-            {recentJobs.map(job => (
-              <Col md={4} key={job._id}>
-                <Card className="h-100 shadow-sm border-0">
-                  <Card.Body>
-                    <Card.Title>{job.title}</Card.Title>
-                    <Card.Text className="text-muted small">{job.description?.substring(0, 100)}...</Card.Text>
-                    <div className="d-flex justify-content-between align-items-center mt-3">
-                      <span className="text-warning fw-bold">{job.salary} {job.salaryCurrency}</span>
-                      <span className="text-muted small">{job.country}</span>
-                    </div>
-                  </Card.Body>
-                  <Card.Footer className="bg-white border-0 pb-3">
-                    <Button as={Link} to={`/jobs/${job._id}`} variant="outline-warning" size="sm" className="w-100">
-                      View Details
-                    </Button>
-                  </Card.Footer>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        ) : (
-          <p className="text-center text-muted">No jobs available at the moment.</p>
-        )}
+        <Row className="mb-5 g-4">
+          {recentJobs.map(job => (
+            <Col md={4} key={job._id}>
+              <Card className="h-100 shadow-sm border-0">
+                <Card.Body>
+                  <Card.Title>{job.title}</Card.Title>
+                  <Card.Text className="text-muted small">{job.description?.substring(0, 100)}...</Card.Text>
+                  <div className="d-flex justify-content-between align-items-center mt-3">
+                    <span className="text-warning fw-bold">{job.salary} {job.salaryCurrency}</span>
+                    <span className="text-muted small">{job.country}</span>
+                  </div>
+                </Card.Body>
+                <Card.Footer className="bg-white border-0 pb-3">
+                  <Button as={Link} to={`/jobs/${job._id}`} variant="outline-warning" size="sm" className="w-100">
+                    View Details
+                  </Button>
+                </Card.Footer>
+              </Card>
+            </Col>
+          ))}
+        </Row>
 
-        {/* Testimonials Section */}
         <h2 className="text-center mb-4">What Workers Say</h2>
         <Row className="mb-5 g-4">
           {testimonials.map((t, idx) => (
@@ -159,7 +148,6 @@ const Home = () => {
           ))}
         </Row>
 
-        {/* CTA Section */}
         <div className="bg-light rounded-4 p-5 text-center mb-4">
           <h3 className="mb-3">Ready to find safe employment?</h3>
           <p className="text-muted mb-4">Join thousands of Kenyans who have found secure jobs through KAZI LINDA.</p>
@@ -168,16 +156,6 @@ const Home = () => {
           </Button>
         </div>
       </Container>
-
-      <style>{`
-        .hover-card {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .hover-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-      `}</style>
     </>
   );
 };

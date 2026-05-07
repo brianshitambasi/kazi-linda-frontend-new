@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { jobAPI } from '../services/api';
 import { Container, Row, Col, Card, Button, Spinner, Badge, Form, InputGroup } from 'react-bootstrap';
@@ -17,10 +17,6 @@ const Jobs = () => {
     fetchJobs();
   }, []);
 
-  useEffect(() => {
-    filterJobs();
-  }, [searchTerm, countryFilter, jobs]);
-
   const fetchJobs = async () => {
     try {
       const res = await jobAPI.getAll();
@@ -37,7 +33,7 @@ const Jobs = () => {
     }
   };
 
-  const filterJobs = () => {
+  const filterJobs = useCallback(() => {
     let filtered = [...jobs];
     if (searchTerm) {
       filtered = filtered.filter(job => 
@@ -49,7 +45,11 @@ const Jobs = () => {
       filtered = filtered.filter(job => job.country === countryFilter);
     }
     setFilteredJobs(filtered);
-  };
+  }, [jobs, searchTerm, countryFilter]);
+
+  useEffect(() => {
+    filterJobs();
+  }, [filterJobs]);
 
   if (loading) {
     return (
@@ -67,7 +67,6 @@ const Jobs = () => {
         <p className="lead text-muted">Browse verified job opportunities from trusted employers</p>
       </div>
 
-      {/* Search and Filter */}
       <Row className="mb-4 g-3">
         <Col md={8}>
           <InputGroup>

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { jobAPI } from '../services/api';
-import { Container, Card, Button, Form, Table, Modal, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
+import { Container, Card, Button, Form, Table, Modal, Spinner, Badge, Row, Col } from 'react-bootstrap';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const EmployerDashboard = () => {
@@ -13,19 +13,9 @@ const EmployerDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    country: 'Saudi Arabia',
-    city: '',
-    salary: '',
-    salaryCurrency: 'SAR',
-    contractDuration: 24,
-    accommodation: 'provided',
-    food: 'provided',
-    workingHours: '8 hours/day',
-    daysOff: '1 day/week',
-    requirements: [],
-    benefits: []
+    title: '', description: '', country: 'Saudi Arabia', city: '', salary: '', salaryCurrency: 'SAR',
+    contractDuration: 24, accommodation: 'provided', food: 'provided', workingHours: '8 hours/day',
+    daysOff: '1 day/week', requirements: [], benefits: []
   });
   const [reqInput, setReqInput] = useState('');
   const [benefitInput, setBenefitInput] = useState('');
@@ -104,19 +94,9 @@ const EmployerDashboard = () => {
 
   const resetForm = () => {
     setFormData({
-      title: '',
-      description: '',
-      country: 'Saudi Arabia',
-      city: '',
-      salary: '',
-      salaryCurrency: 'SAR',
-      contractDuration: 24,
-      accommodation: 'provided',
-      food: 'provided',
-      workingHours: '8 hours/day',
-      daysOff: '1 day/week',
-      requirements: [],
-      benefits: []
+      title: '', description: '', country: 'Saudi Arabia', city: '', salary: '', salaryCurrency: 'SAR',
+      contractDuration: 24, accommodation: 'provided', food: 'provided', workingHours: '8 hours/day',
+      daysOff: '1 day/week', requirements: [], benefits: []
     });
     setEditingJob(null);
     setReqInput('');
@@ -126,8 +106,8 @@ const EmployerDashboard = () => {
   if (!user || user.role !== 'employer') {
     return (
       <Container className="py-5 text-center">
-        <Alert variant="warning">Only employers can access this page.</Alert>
-        <Button as={Link} to="/" variant="primary">Go Home</Button>
+        <Badge bg="warning">Only employers can access this page.</Badge>
+        <Button as={Link} to="/" variant="primary" className="mt-3">Go Home</Button>
       </Container>
     );
   }
@@ -161,15 +141,7 @@ const EmployerDashboard = () => {
       ) : (
         <Table striped bordered hover responsive>
           <thead className="bg-dark text-white">
-            <tr>
-              <th>Title</th>
-              <th>Country</th>
-              <th>Salary</th>
-              <th>Applications</th>
-              <th>Status</th>
-              <th>Posted</th>
-              <th>Actions</th>
-            </tr>
+            <tr><th>Title</th><th>Country</th><th>Salary</th><th>Applications</th><th>Status</th><th>Posted</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {jobs.map(job => (
@@ -198,149 +170,22 @@ const EmployerDashboard = () => {
         </Table>
       )}
 
-      {/* Post/Edit Job Modal */}
       <Modal show={showModal} onHide={() => { setShowModal(false); resetForm(); }} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{editingJob ? 'Edit Job' : 'Post New Job'}</Modal.Title>
-        </Modal.Header>
+        <Modal.Header closeButton><Modal.Title>{editingJob ? 'Edit Job' : 'Post New Job'}</Modal.Title></Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleSubmit}>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Job Title *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.title}
-                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Country *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.country}
-                    onChange={e => setFormData({ ...formData, country: e.target.value })}
-                    required
-                  />
-                </Form.Group>
-              </Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Job Title *</Form.Label><Form.Control type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} required /></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Country *</Form.Label><Form.Control type="text" value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} required /></Form.Group></Col>
             </Row>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>City</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.city}
-                    onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Salary *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={formData.salary}
-                    onChange={e => setFormData({ ...formData, salary: e.target.value })}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Currency</Form.Label>
-                  <Form.Select
-                    value={formData.salaryCurrency}
-                    onChange={e => setFormData({ ...formData, salaryCurrency: e.target.value })}
-                  >
-                    <option value="SAR">SAR (Saudi Riyal)</option>
-                    <option value="AED">AED (UAE Dirham)</option>
-                    <option value="USD">USD (US Dollar)</option>
-                    <option value="KES">KES (Kenyan Shilling)</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>City</Form.Label><Form.Control type="text" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} /></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Salary *</Form.Label><Form.Control type="number" value={formData.salary} onChange={e => setFormData({ ...formData, salary: e.target.value })} required /></Form.Group></Col>
             </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>Description *</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                required
-              />
-            </Form.Group>
+            <Form.Group className="mb-3"><Form.Label>Description *</Form.Label><Form.Control as="textarea" rows={3} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} required /></Form.Group>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Requirements</Form.Label>
-                  <div className="d-flex mb-2">
-                    <Form.Control
-                      type="text"
-                      value={reqInput}
-                      onChange={e => setReqInput(e.target.value)}
-                      placeholder="e.g., 2 years experience"
-                    />
-                    <Button type="button" variant="outline-warning" onClick={addRequirement} className="ms-2">Add</Button>
-                  </div>
-                  <div className="d-flex flex-wrap gap-2">
-                    {formData.requirements.map((req, idx) => (
-                      <Badge key={idx} bg="secondary" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeRequirement(idx)}>
-                        {req} ✕
-                      </Badge>
-                    ))}
-                  </div>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Benefits</Form.Label>
-                  <div className="d-flex mb-2">
-                    <Form.Control
-                      type="text"
-                      value={benefitInput}
-                      onChange={e => setBenefitInput(e.target.value)}
-                      placeholder="e.g., Medical insurance"
-                    />
-                    <Button type="button" variant="outline-warning" onClick={addBenefit} className="ms-2">Add</Button>
-                  </div>
-                  <div className="d-flex flex-wrap gap-2">
-                    {formData.benefits.map((benefit, idx) => (
-                      <Badge key={idx} bg="success" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeBenefit(idx)}>
-                        {benefit} ✕
-                      </Badge>
-                    ))}
-                  </div>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Contract Duration (months)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={formData.contractDuration}
-                    onChange={e => setFormData({ ...formData, contractDuration: e.target.value })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Working Hours</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.workingHours}
-                    onChange={e => setFormData({ ...formData, workingHours: e.target.value })}
-                  />
-                </Form.Group>
-              </Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Requirements</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={reqInput} onChange={e => setReqInput(e.target.value)} placeholder="e.g., 2 years experience" /><Button type="button" variant="outline-warning" onClick={addRequirement} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.requirements.map((req, idx) => (<Badge key={idx} bg="secondary" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeRequirement(idx)}>{req} ✕</Badge>))}</div></Form.Group></Col>
+              <Col md={6}><Form.Group className="mb-3"><Form.Label>Benefits</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={benefitInput} onChange={e => setBenefitInput(e.target.value)} placeholder="e.g., Medical insurance" /><Button type="button" variant="outline-warning" onClick={addBenefit} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.benefits.map((benefit, idx) => (<Badge key={idx} bg="success" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeBenefit(idx)}>{benefit} ✕</Badge>))}</div></Form.Group></Col>
             </Row>
             <div className="d-flex justify-content-end gap-2 mt-3">
               <Button variant="secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</Button>

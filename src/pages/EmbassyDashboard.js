@@ -1,37 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { Container, Row, Col, Card, Spinner, Table, Badge, Button } from 'react-bootstrap';
-import { FaUsers, FaFlag, FaCheckCircle, FaClock, FaGlobe } from 'react-icons/fa';
+import { FaUsers, FaFlag, FaCheckCircle, FaGlobe } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 const EmbassyDashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalWorkers: 0,
-    activeCases: 0,
-    resolvedCases: 0,
-    countries: 0
-  });
+  const [stats, setStats] = useState({ totalWorkers: 0, activeCases: 0, resolvedCases: 0, countries: 0 });
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setStats({
-        totalWorkers: 1250,
-        activeCases: 8,
-        resolvedCases: 45,
-        countries: 12
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
+    setTimeout(() => {
+      setStats({ totalWorkers: 1250, activeCases: 8, resolvedCases: 45, countries: 12 });
       setLoading(false);
-    }
-  };
+    }, 1000);
+  }, []);
 
   if (loading) {
     return (
@@ -95,7 +77,6 @@ const EmbassyDashboard = () => {
                 <th>Country</th>
                 <th>Type</th>
                 <th>Status</th>
-                <th>Reported</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -105,7 +86,6 @@ const EmbassyDashboard = () => {
                 <td>Saudi Arabia</td>
                 <td>Document Theft</td>
                 <td><Badge bg="danger">Active</Badge></td>
-                <td>2024-01-15</td>
                 <td><Button size="sm" variant="warning">View</Button></td>
               </tr>
               <tr>
@@ -113,7 +93,6 @@ const EmbassyDashboard = () => {
                 <td>UAE</td>
                 <td>Wage Theft</td>
                 <td><Badge bg="warning">Pending</Badge></td>
-                <td>2024-01-14</td>
                 <td><Button size="sm" variant="warning">View</Button></td>
               </tr>
             </tbody>
