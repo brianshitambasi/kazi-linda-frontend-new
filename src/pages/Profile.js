@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Image, Button, Badge, Tabs, Tab, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Tabs, Tab, Spinner } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { 
   FaUserCircle, FaMapMarkerAlt, FaBriefcase, FaGraduationCap, FaCertificate, 
   FaLanguage, FaCalendarAlt, FaEnvelope, FaUserPlus, FaUserCheck,
-  FaGlobe, FaUsers, FaCamera
+  FaGlobe, FaCamera, FaHeart
 } from 'react-icons/fa';
 import { profileAPI } from '../services/api';
+import FollowersModal from '../components/FollowersModal';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -17,6 +18,9 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('about');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -61,8 +65,60 @@ const Profile = () => {
       });
       setIsFollowing(true);
       toast.success('Now following!');
+      fetchProfile();
     } catch (err) {
       toast.error('Failed to follow');
+    }
+  };
+
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'kazi_linda_uploads');
+      
+      const uploadRes = await fetch('https://api.cloudinary.com/v1_1/denczbmin/image/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const cloudinaryData = await uploadRes.json();
+      
+      if (!cloudinaryData.secure_url) {
+        throw new Error('Upload failed');
+      }
+      
+      const response = await fetch('https://kazi-linda.onrender.com/api/profile/cover-photo', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ coverUrl: cloudinaryData.secure_url })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Cover photo updated!');
+        setProfile({ ...profile, coverPhoto: cloudinaryData.secure_url });
+      }
+    } catch (err) {
+      toast.error('Failed to upload cover photo');
+    } finally {
+      setUploadingCover(false);
     }
   };
 
@@ -90,164 +146,197 @@ const Profile = () => {
   const isOwnProfile = !userId || userId === user?._id;
 
   return (
-    <div className="facebook-profile">
-      {/* Cover Photo */}
-      <div className="cover-photo">
-        {profile.coverPhoto ? (
-          <Image src={profile.coverPhoto} fluid className="cover-image" />
-        ) : (
-          <div className="cover-image default-cover"></div>
-        )}
-        {isOwnProfile && (
-          <Button variant="light" size="sm" className="edit-cover">
-            <FaCamera className="me-1" /> Edit Cover
-          </Button>
-        )}
-      </div>
-
-      {/* Profile Info Section */}
-      <Container>
-        <div className="profile-info-section">
-          <div className="profile-avatar">
-            {profile.profilePicture ? (
-              <Image src={profile.profilePicture} roundedCircle className="avatar-image" />
-            ) : (
-              <FaUserCircle className="avatar-placeholder" />
-            )}
-            {isOwnProfile && (
-              <Button variant="light" size="sm" className="edit-avatar" as={Link} to="/profile/edit">
-                <FaCamera /> Update
+    <>
+      <div className="facebook-profile">
+        {/* Cover Photo */}
+        <div className="cover-photo">
+          {profile.coverPhoto ? (
+            <img src={profile.coverPhoto} alt="Cover" className="cover-image" />
+          ) : (
+            <div className="cover-image default-cover"></div>
+          )}
+          {isOwnProfile && (
+            <>
+              <input
+                type="file"
+                id="coverPhotoInput"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleCoverUpload}
+                disabled={uploadingCover}
+              />
+              <Button 
+                variant="light" 
+                size="sm" 
+                className="edit-cover"
+                onClick={() => document.getElementById('coverPhotoInput').click()}
+                disabled={uploadingCover}
+              >
+                <FaCamera className="me-1" /> {uploadingCover ? 'Uploading...' : 'Edit Cover'}
               </Button>
-            )}
-          </div>
-          
-          <div className="profile-details">
-            <h2>{profile.name}</h2>
-            <div className="profile-meta">
-              <Badge bg={getStatusColor(profile.currentStatus)} className="me-2">
-                {profile.currentStatus || 'Available'}
-              </Badge>
-              <Badge bg="secondary">{profile.role}</Badge>
-              {profile.currentCountry && (
-                <span className="text-muted ms-3">
-                  <FaMapMarkerAlt className="me-1" /> {profile.currentCountry}
-                  {profile.currentCity && `, ${profile.currentCity}`}
-                </span>
-              )}
-            </div>
-            <div className="profile-stats">
-              <div><strong>{profile.followers?.length || 0}</strong> Followers</div>
-              <div><strong>{profile.following?.length || 0}</strong> Following</div>
-            </div>
-          </div>
-          
-          <div className="profile-actions">
-            {!isOwnProfile && (
-              <Button variant="primary" onClick={handleFollow} className="me-2">
-                {isFollowing ? <FaUserCheck className="me-1" /> : <FaUserPlus className="me-1" />}
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
-            )}
-            <Button variant="outline-primary" as={Link} to={`/messages?user=${profile._id}`}>
-              <FaEnvelope className="me-1" /> Message
-            </Button>
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Tabs Section */}
-        <Tabs activeKey={activeTab} onSelect={setActiveTab} className="profile-tabs">
-          <Tab eventKey="about" title="About">
-            <div className="tab-content">
-              <Row>
-                <Col md={6}>
-                  <Card className="mb-3">
-                    <Card.Body>
-                      <h6>Bio</h6>
-                      <p>{profile.bio || 'No bio added yet'}</p>
-                      <hr />
-                      <h6>Contact Info</h6>
-                      <p><FaEnvelope className="me-2" /> {profile.email}</p>
-                      <h6>Location</h6>
-                      <p><FaMapMarkerAlt className="me-2" /> From: {profile.countryOfOrigin || 'Not specified'}</p>
-                      <p><FaGlobe className="me-2" /> Lives in: {profile.currentCountry || 'Not specified'}</p>
-                      <h6>Joined</h6>
-                      <p><FaCalendarAlt className="me-2" /> {new Date(profile.createdAt).toLocaleDateString()}</p>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Card className="mb-3">
-                    <Card.Body>
-                      <h6><FaBriefcase className="me-2" /> Skills</h6>
-                      <div className="d-flex flex-wrap gap-2">
-                        {profile.skills?.map((skill, i) => (
-                          <Badge key={i} bg="info">{skill}</Badge>
+        {/* Profile Info Section */}
+        <Container>
+          <div className="profile-info-section">
+            <div className="profile-avatar">
+              {profile.profilePicture ? (
+                <img src={profile.profilePicture} alt="Profile" className="avatar-image" />
+              ) : (
+                <FaUserCircle className="avatar-placeholder" />
+              )}
+              {isOwnProfile && (
+                <Button variant="light" size="sm" className="edit-avatar" as={Link} to="/profile/edit">
+                  <FaCamera /> Update
+                </Button>
+              )}
+            </div>
+            
+            <div className="profile-details">
+              <h2>{profile.name}</h2>
+              <div className="profile-meta">
+                <Badge bg={getStatusColor(profile.currentStatus)} className="me-2">
+                  {profile.currentStatus || 'Available'}
+                </Badge>
+                <Badge bg="secondary">{profile.role}</Badge>
+                {profile.currentCountry && (
+                  <span className="text-muted ms-3">
+                    <FaMapMarkerAlt className="me-1" /> {profile.currentCountry}
+                    {profile.currentCity && `, ${profile.currentCity}`}
+                  </span>
+                )}
+              </div>
+              <div className="profile-stats">
+                <div style={{ cursor: 'pointer' }} onClick={() => setShowFollowers(true)}>
+                  <strong>{profile.followers?.length || 0}</strong> Followers
+                </div>
+                <div style={{ cursor: 'pointer' }} onClick={() => setShowFollowing(true)}>
+                  <strong>{profile.following?.length || 0}</strong> Following
+                </div>
+              </div>
+            </div>
+            
+            <div className="profile-actions">
+              {!isOwnProfile && (
+                <Button variant="primary" onClick={handleFollow} className="me-2">
+                  {isFollowing ? <FaUserCheck className="me-1" /> : <FaUserPlus className="me-1" />}
+                  {isFollowing ? 'Following' : 'Follow'}
+                </Button>
+              )}
+              <Button variant="outline-primary" as={Link} to={`/messages?user=${profile._id}`}>
+                <FaEnvelope className="me-1" /> Message
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs Section */}
+          <Tabs activeKey={activeTab} onSelect={setActiveTab} className="profile-tabs">
+            <Tab eventKey="about" title="About">
+              <div className="tab-content">
+                <Row>
+                  <Col md={6}>
+                    <Card className="mb-3">
+                      <Card.Body>
+                        <h6>Bio</h6>
+                        <p>{profile.bio || 'No bio added yet'}</p>
+                        <hr />
+                        <h6>Contact Info</h6>
+                        <p><FaEnvelope className="me-2" /> {profile.email}</p>
+                        <h6>Location</h6>
+                        <p><FaMapMarkerAlt className="me-2" /> From: {profile.countryOfOrigin || 'Not specified'}</p>
+                        <p><FaGlobe className="me-2" /> Lives in: {profile.currentCountry || 'Not specified'}</p>
+                        <h6>Joined</h6>
+                        <p><FaCalendarAlt className="me-2" /> {new Date(profile.createdAt).toLocaleDateString()}</p>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                  <Col md={6}>
+                    <Card className="mb-3">
+                      <Card.Body>
+                        <h6><FaBriefcase className="me-2" /> Skills</h6>
+                        <div className="d-flex flex-wrap gap-2">
+                          {profile.skills?.map((skill, i) => (
+                            <Badge key={i} bg="info">{skill}</Badge>
+                          ))}
+                          {!profile.skills?.length && <p className="text-muted">No skills added</p>}
+                        </div>
+                        <hr />
+                        <h6><FaLanguage className="me-2" /> Languages</h6>
+                        {profile.languages?.map((lang, i) => (
+                          <Badge key={i} bg="success" className="me-2 mb-2">{lang.name} - {lang.proficiency}</Badge>
                         ))}
-                        {!profile.skills?.length && <p className="text-muted">No skills added</p>}
-                      </div>
-                      <hr />
-                      <h6><FaLanguage className="me-2" /> Languages</h6>
-                      {profile.languages?.map((lang, i) => (
-                        <Badge key={i} bg="success" className="me-2 mb-2">{lang.name} - {lang.proficiency}</Badge>
+                        {!profile.languages?.length && <p className="text-muted">No languages added</p>}
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                </Row>
+                
+                {profile.education?.length > 0 && (
+                  <Card className="mb-3">
+                    <Card.Body>
+                      <h6><FaGraduationCap className="me-2" /> Education</h6>
+                      {profile.education.map((edu, i) => (
+                        <div key={i} className="mb-2">
+                          <strong>{edu.degree}</strong> at {edu.institution}<br />
+                          <small className="text-muted">{edu.year}</small>
+                          {edu.description && <p className="mt-1">{edu.description}</p>}
+                        </div>
                       ))}
-                      {!profile.languages?.length && <p className="text-muted">No languages added</p>}
                     </Card.Body>
                   </Card>
-                </Col>
-              </Row>
-              
-              {profile.education?.length > 0 && (
-                <Card className="mb-3">
-                  <Card.Body>
-                    <h6><FaGraduationCap className="me-2" /> Education</h6>
-                    {profile.education.map((edu, i) => (
-                      <div key={i} className="mb-2">
-                        <strong>{edu.degree}</strong> at {edu.institution}<br />
-                        <small className="text-muted">{edu.year}</small>
-                        {edu.description && <p className="mt-1">{edu.description}</p>}
-                      </div>
-                    ))}
-                  </Card.Body>
-                </Card>
-              )}
-              
-              {profile.certifications?.length > 0 && (
-                <Card>
-                  <Card.Body>
-                    <h6><FaCertificate className="me-2" /> Certifications</h6>
-                    {profile.certifications.map((cert, i) => (
-                      <div key={i}>
-                        <strong>{cert.name}</strong> - {cert.issuer}
-                      </div>
-                    ))}
-                  </Card.Body>
-                </Card>
-              )}
-            </div>
-          </Tab>
-          
-          <Tab eventKey="posts" title="Posts">
-            <div className="tab-content text-center py-5">
-              <FaUsers size={50} className="text-muted mb-3" />
-              <p>Posts will appear here</p>
-            </div>
-          </Tab>
-          
-          <Tab eventKey="photos" title="Photos">
-            <div className="tab-content text-center py-5">
-              <FaCamera size={50} className="text-muted mb-3" />
-              <p>Photos will appear here</p>
-            </div>
-          </Tab>
-          
-          <Tab eventKey="friends" title="Friends">
-            <div className="tab-content text-center py-5">
-              <FaUsers size={50} className="text-muted mb-3" />
-              <p>Friends list will appear here</p>
-            </div>
-          </Tab>
-        </Tabs>
-      </Container>
+                )}
+                
+                {profile.certifications?.length > 0 && (
+                  <Card>
+                    <Card.Body>
+                      <h6><FaCertificate className="me-2" /> Certifications</h6>
+                      {profile.certifications.map((cert, i) => (
+                        <div key={i}>
+                          <strong>{cert.name}</strong> - {cert.issuer}
+                        </div>
+                      ))}
+                    </Card.Body>
+                  </Card>
+                )}
+              </div>
+            </Tab>
+            
+            <Tab eventKey="posts" title="Posts">
+              <div className="tab-content text-center py-5">
+                <FaHeart size={50} className="text-muted mb-3" />
+                <p>Posts will appear here</p>
+              </div>
+            </Tab>
+            
+            <Tab eventKey="photos" title="Photos">
+              <div className="tab-content text-center py-5">
+                <FaCamera size={50} className="text-muted mb-3" />
+                <p>Photos will appear here</p>
+              </div>
+            </Tab>
+          </Tabs>
+        </Container>
+      </div>
+
+      {/* Followers Modal */}
+      <FollowersModal 
+        show={showFollowers}
+        onHide={() => setShowFollowers(false)}
+        userId={profile._id}
+        title="Followers"
+        type="followers"
+      />
+
+      {/* Following Modal */}
+      <FollowersModal 
+        show={showFollowing}
+        onHide={() => setShowFollowing(false)}
+        userId={profile._id}
+        title="Following"
+        type="following"
+      />
 
       <style>{`
         .facebook-profile {
@@ -352,7 +441,7 @@ const Profile = () => {
           }
         }
       `}</style>
-    </div>
+    </>
   );
 };
 

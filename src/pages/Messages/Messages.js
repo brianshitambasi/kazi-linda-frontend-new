@@ -2,12 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { messageAPI } from '../../services/api';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image } from 'react-bootstrap';
-import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaCircle, FaArrowLeft } from 'react-icons/fa';
 import ProfileModal from '../../components/ProfileModal';
+import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Messages = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -17,6 +20,49 @@ const Messages = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedProfileUserId, setSelectedProfileUserId] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Check for user parameter in URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const userId = params.get('user');
+    if (userId && !selectedUser) {
+      fetchUserAndStartChat(userId);
+    }
+  }, [location]);
+
+  const fetchUserAndStartChat = async (userId) => {
+    try {
+      const res = await fetch(`https://kazi-linda.onrender.com/api/profile/${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const userData = await res.json();
+      setSelectedUser(userData);
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not load user');
+    }
+  };
+
+  // Update online status periodically
+  useEffect(() => {
+    const updateOnlineStatus = async () => {
+      try {
+        await fetch('https://kazi-linda.onrender.com/api/social/online', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (err) {
+        console.error('Error updating online status:', err);
+      }
+    };
+    
+    updateOnlineStatus();
+    const interval = setInterval(updateOnlineStatus, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   useEffect(() => {
     fetchConversations();
@@ -124,13 +170,6 @@ const Messages = () => {
 
   return (
     <Container fluid className="py-4">
-      <h2 className="mb-4">
-        Messages 
-        <Badge bg="warning" className="ms-2">
-          {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
-        </Badge>
-      </h2>
-      
       <Row>
         <Col md={4} lg={3}>
           <Card className="shadow-sm">
@@ -141,7 +180,7 @@ const Messages = () => {
               {conversations.length === 0 ? (
                 <ListGroup.Item className="text-center text-muted py-5">
                   No conversations yet<br />
-                  <small>Start by messaging someone!</small>
+                  <small>Click on a user's profile to start chatting!</small>
                 </ListGroup.Item>
               ) : (
                 conversations.map(conv => {
@@ -158,18 +197,23 @@ const Messages = () => {
                       style={{ cursor: 'pointer' }}
                     >
                       <div className="d-flex align-items-center">
-                        {otherUser.profilePicture ? (
-                          <Image 
-                            src={otherUser.profilePicture} 
-                            roundedCircle 
-                            width="50" 
-                            height="50" 
-                            className="me-3"
-                            style={{ objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <FaUserCircle size={50} className="text-warning me-3" />
-                        )}
+                        <div className="position-relative">
+                          {otherUser.profilePicture ? (
+                            <Image 
+                              src={otherUser.profilePicture} 
+                              roundedCircle 
+                              width="50" 
+                              height="50" 
+                              className="me-3"
+                              style={{ objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <FaUserCircle size={50} className="text-warning me-3" />
+                          )}
+                          {otherUser.isOnline && (
+                            <FaCircle className="position-absolute bottom-0 end-0 text-success" size={14} style={{ border: '2px solid white', borderRadius: '50%' }} />
+                          )}
+                        </div>
                         <div className="flex-grow-1">
                           <div className="d-flex justify-content-between align-items-center">
                             <strong>{otherUser.name}</strong>
@@ -200,29 +244,43 @@ const Messages = () => {
           {selectedUser ? (
             <Card className="shadow-sm h-100 d-flex flex-column">
               <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                <div className="d-flex align-items-center" style={{ cursor: 'pointer' }} onClick={() => viewUserProfile(selectedUser._id)}>
-                  {selectedUser.profilePicture ? (
-                    <Image 
-                      src={selectedUser.profilePicture} 
-                      roundedCircle 
-                      width="40" 
-                      height="40" 
-                      className="me-2"
-                      style={{ objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <FaUserCircle size={40} className="text-warning me-2" />
-                  )}
-                  <div>
-                    <strong>{selectedUser.name}</strong>
-                    <div>
-                      {getStatusBadge(selectedUser.currentStatus)}
-                      {selectedUser.currentCountry && (
-                        <span className="ms-2 text-muted small">
-                          <FaMapMarkerAlt className="me-1" />
-                          {selectedUser.currentCountry}
-                        </span>
+                <div className="d-flex align-items-center">
+                  <Button 
+                    variant="link" 
+                    className="d-md-none me-2 p-0"
+                    onClick={() => setSelectedUser(null)}
+                  >
+                    <FaArrowLeft />
+                  </Button>
+                  <div className="d-flex align-items-center" style={{ cursor: 'pointer' }} onClick={() => viewUserProfile(selectedUser._id)}>
+                    <div className="position-relative">
+                      {selectedUser.profilePicture ? (
+                        <Image 
+                          src={selectedUser.profilePicture} 
+                          roundedCircle 
+                          width="40" 
+                          height="40" 
+                          className="me-2"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <FaUserCircle size={40} className="text-warning me-2" />
                       )}
+                      {selectedUser.isOnline && (
+                        <FaCircle className="position-absolute bottom-0 end-0 text-success" size={12} style={{ border: '2px solid white', borderRadius: '50%' }} />
+                      )}
+                    </div>
+                    <div>
+                      <strong>{selectedUser.name}</strong>
+                      <div>
+                        {getStatusBadge(selectedUser.currentStatus)}
+                        {selectedUser.currentCountry && (
+                          <span className="ms-2 text-muted small">
+                            <FaMapMarkerAlt className="me-1" />
+                            {selectedUser.currentCountry}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -310,7 +368,7 @@ const Messages = () => {
                 <h5>Welcome to Messages</h5>
                 <p className="text-muted">
                   Select a conversation from the sidebar<br />
-                  or start a new one by messaging a user
+                  or click on a user's profile to start chatting!
                 </p>
               </Card.Body>
             </Card>

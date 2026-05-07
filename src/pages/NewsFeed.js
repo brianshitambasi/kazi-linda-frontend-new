@@ -24,7 +24,7 @@ const NewsFeed = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      // Ensure data is an array
+      console.log('Feed data:', data); // Debug log
       setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching feed:', err);
@@ -52,10 +52,14 @@ const NewsFeed = () => {
       const res = await fetch('https://kazi-linda.onrender.com/api/social/online-friends', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
-      setOnlineFriends(Array.isArray(data) ? data : []);
+      if (res.ok) {
+        const data = await res.json();
+        setOnlineFriends(Array.isArray(data) ? data : []);
+      } else {
+        setOnlineFriends([]);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching online friends:', err);
       setOnlineFriends([]);
     }
   }, [token]);
@@ -84,7 +88,7 @@ const NewsFeed = () => {
         body: JSON.stringify({ content: newPost })
       });
       const post = await res.json();
-      setPosts([post, ...(Array.isArray(posts) ? posts : [])]);
+      setPosts([post, ...posts]);
       setNewPost('');
       toast.success('Post shared!');
     } catch (err) {
@@ -131,8 +135,6 @@ const NewsFeed = () => {
     );
   }
 
-  const postsArray = Array.isArray(posts) ? posts : [];
-
   return (
     <div className="newsfeed-container">
       <Container fluid className="px-4">
@@ -143,9 +145,18 @@ const NewsFeed = () => {
               <Card className="mb-3">
                 <Card.Body className="text-center">
                   {user?.profilePicture ? (
-                    <Image src={user.profilePicture} roundedCircle width="60" height="60" className="mb-2" />
+                    <Image 
+                      src={user.profilePicture} 
+                      roundedCircle 
+                      width="60" 
+                      height="60" 
+                      className="mb-2 border"
+                      style={{ objectFit: 'cover' }}
+                    />
                   ) : (
-                    <div className="bg-secondary rounded-circle mx-auto mb-2" style={{ width: '60px', height: '60px' }} />
+                    <div className="bg-secondary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>
+                      <FaUsers size={30} className="text-white" />
+                    </div>
                   )}
                   <h6>{user?.name}</h6>
                   <Button as={Link} to="/profile/edit" variant="outline-warning" size="sm">Edit Profile</Button>
@@ -162,9 +173,15 @@ const NewsFeed = () => {
                       <div key={friend._id} className="d-flex align-items-center p-2 border-bottom">
                         <div className="position-relative">
                           {friend.profilePicture ? (
-                            <Image src={friend.profilePicture} roundedCircle width="32" height="32" />
+                            <Image 
+                              src={friend.profilePicture} 
+                              roundedCircle 
+                              width="32" 
+                              height="32" 
+                              style={{ objectFit: 'cover' }}
+                            />
                           ) : (
-                            <FaUsers size={32} className="text-muted" />
+                            <div className="bg-secondary rounded-circle" style={{ width: '32px', height: '32px' }} />
                           )}
                           <span className="online-dot"></span>
                         </div>
@@ -179,13 +196,23 @@ const NewsFeed = () => {
 
           {/* Main Feed */}
           <Col lg={6}>
+            {/* Create Post Card */}
             <Card className="mb-3">
               <Card.Body>
                 <div className="d-flex align-items-start">
                   {user?.profilePicture ? (
-                    <Image src={user.profilePicture} roundedCircle width="40" height="40" className="me-2" />
+                    <Image 
+                      src={user.profilePicture} 
+                      roundedCircle 
+                      width="40" 
+                      height="40" 
+                      className="me-2"
+                      style={{ objectFit: 'cover' }}
+                    />
                   ) : (
-                    <div className="bg-secondary rounded-circle me-2" style={{ width: '40px', height: '40px' }} />
+                    <div className="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                      <FaUsers size={20} className="text-white" />
+                    </div>
                   )}
                   <Form.Control
                     as="textarea"
@@ -205,7 +232,8 @@ const NewsFeed = () => {
               </Card.Body>
             </Card>
 
-            {postsArray.length === 0 ? (
+            {/* Posts Feed */}
+            {posts.length === 0 ? (
               <Card className="text-center py-5">
                 <Card.Body>
                   <FaUsers size={50} className="text-muted mb-3" />
@@ -214,15 +242,28 @@ const NewsFeed = () => {
                 </Card.Body>
               </Card>
             ) : (
-              postsArray.map(post => (
+              posts.map(post => (
                 <Card key={post._id} className="mb-3">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-3">
                       <div className="d-flex">
                         {post.author?.profilePicture ? (
-                          <Image src={post.author.profilePicture} roundedCircle width="40" height="40" className="me-2" />
+                          <Link to={`/profile/${post.author?._id}`}>
+                            <Image 
+                              src={post.author.profilePicture} 
+                              roundedCircle 
+                              width="40" 
+                              height="40" 
+                              className="me-2"
+                              style={{ objectFit: 'cover' }}
+                            />
+                          </Link>
                         ) : (
-                          <div className="bg-secondary rounded-circle me-2" style={{ width: '40px', height: '40px' }} />
+                          <Link to={`/profile/${post.author?._id}`}>
+                            <div className="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                              <FaUsers size={20} className="text-white" />
+                            </div>
+                          </Link>
                         )}
                         <div>
                           <Link to={`/profile/${post.author?._id}`} className="text-decoration-none text-dark fw-bold">
@@ -271,9 +312,22 @@ const NewsFeed = () => {
                   suggestedUsers.map(suggestion => (
                     <div key={suggestion._id} className="d-flex align-items-center p-2 border-bottom">
                       {suggestion.profilePicture ? (
-                        <Image src={suggestion.profilePicture} roundedCircle width="40" height="40" className="me-2" />
+                        <Link to={`/profile/${suggestion._id}`}>
+                          <Image 
+                            src={suggestion.profilePicture} 
+                            roundedCircle 
+                            width="40" 
+                            height="40" 
+                            className="me-2"
+                            style={{ objectFit: 'cover' }}
+                          />
+                        </Link>
                       ) : (
-                        <div className="bg-secondary rounded-circle me-2" style={{ width: '40px', height: '40px' }} />
+                        <Link to={`/profile/${suggestion._id}`}>
+                          <div className="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                            <FaUsers size={20} className="text-white" />
+                          </div>
+                        </Link>
                       )}
                       <div className="flex-grow-1">
                         <Link to={`/profile/${suggestion._id}`} className="text-decoration-none text-dark fw-bold small">
