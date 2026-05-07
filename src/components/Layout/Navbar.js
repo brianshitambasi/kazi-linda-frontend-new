@@ -19,7 +19,7 @@ const Navbar = () => {
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 30000);
+      const interval = setInterval(fetchUnreadCount, 60000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -27,9 +27,10 @@ const Navbar = () => {
   const fetchUnreadCount = async () => {
     try {
       const res = await messageAPI.getUnreadCount();
-      setUnreadCount(res.data.count);
+      setUnreadCount(res.data?.count || 0);
     } catch (err) {
-      console.error('Error fetching unread count:', err);
+      // Silently fail - don't show errors for this
+      console.log('Could not fetch unread count');
     }
   };
 
@@ -65,7 +66,6 @@ const Navbar = () => {
         </BsNavbar.Toggle>
         
         <BsNavbar.Collapse id="basic-navbar-nav">
-          {/* Center - Navigation Links */}
           <Nav className="mx-auto">
             <Nav.Link as={Link} to="/" className={isActive('/') ? 'active text-warning' : ''} onClick={() => setExpanded(false)}>
               <FaHome className="me-1" /> Home
@@ -89,7 +89,6 @@ const Navbar = () => {
             )}
           </Nav>
 
-          {/* Right - Auth Buttons */}
           <div className="d-flex">
             {user ? (
               <Dropdown align="end">

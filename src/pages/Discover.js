@@ -1,39 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Image, Button, Spinner, InputGroup, Form, Badge } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Row, Col, Card, Image, Button, InputGroup, Form, Badge } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
-import { FaUserPlus, FaUserCheck, FaSearch, FaUsers, FaEnvelope, FaCircle } from 'react-icons/fa';
+import { FaUserPlus, FaSearch, FaUsers, FaEnvelope, FaCircle } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Discover = () => {
   const { user, token } = useAuth();
   const [people, setPeople] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    fetchPeople();
-    // Update online status every 30 seconds
-    const interval = setInterval(updateOnlineStatus, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchPeople = async () => {
+  const fetchPeople = useCallback(async () => {
     try {
       const res = await fetch('https://kazi-linda.onrender.com/api/social/people', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      setPeople(data);
+      setPeople(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
+      setPeople([]);
     }
-  };
+  }, [token]);
 
-  const updateOnlineStatus = async () => {
+  const updateOnlineStatus = useCallback(async () => {
     try {
       await fetch('https://kazi-linda.onrender.com/api/social/online', {
         method: 'POST',
@@ -45,7 +36,16 @@ const Discover = () => {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchPeople();
+    updateOnlineStatus();
+    const interval = setInterval(() => {
+      updateOnlineStatus();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchPeople, updateOnlineStatus]);
 
   const handleFollow = async (userId) => {
     try {
@@ -78,14 +78,6 @@ const Discover = () => {
     return filtered;
   };
 
-  if (loading) {
-    return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" variant="warning" />
-      </Container>
-    );
-  }
-
   const filteredPeople = getFilteredPeople();
 
   return (
@@ -116,9 +108,7 @@ const Discover = () => {
 
       <Row>
         {filteredPeople.length === 0 ? (
-          <div className="text-center py-5 text-muted">
-            No users found
-          </div>
+          <div className="text-center py-5 text-muted">No users found</div>
         ) : (
           filteredPeople.map(person => (
             <Col md={6} lg={4} key={person._id} className="mb-4">
@@ -126,54 +116,21 @@ const Discover = () => {
                 <Card.Body className="text-center">
                   <div className="position-relative d-inline-block">
                     {person.profilePicture ? (
-                      <Image
-                        src={person.profilePicture}
-                        roundedCircle
-                        width="100"
-                        height="100"
-                        className="mb-3 border"
-                        style={{ objectFit: 'cover' }}
-                      />
+                      <Image src={person.profilePicture} roundedCircle width="100" height="100" className="mb-3 border" />
                     ) : (
                       <div className="bg-secondary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style={{ width: '100px', height: '100px' }}>
                         <FaUsers size={50} className="text-white" />
                       </div>
                     )}
-                    {person.isOnline && (
-                      <span className="position-absolute bottom-0 end-0">
-                        <FaCircle className="text-success" size={16} />
-                      </span>
-                    )}
+                    {person.isOnline && <FaCircle className="position-absolute bottom-0 end-0 text-success" size={16} />}
                   </div>
                   <h5 className="mb-1">{person.name}</h5>
                   <Badge bg="secondary" className="mb-2">{person.role}</Badge>
-                  <p className="text-muted small mb-2">
-                    {person.currentCountry || 'Location not set'}
-                  </p>
+                  <p className="text-muted small mb-2">{person.currentCountry || 'Location not set'}</p>
                   <div className="d-flex gap-2 justify-content-center">
-                    <Button
-                      as={Link}
-                      to={`/profile/${person._id}`}
-                      variant="outline-primary"
-                      size="sm"
-                    >
-                      View Profile
-                    </Button>
-                    <Button
-                      variant="outline-warning"
-                      size="sm"
-                      onClick={() => handleFollow(person._id)}
-                    >
-                      <FaUserPlus className="me-1" /> Follow
-                    </Button>
-                    <Button
-                      as={Link}
-                      to={`/messages?user=${person._id}`}
-                      variant="outline-success"
-                      size="sm"
-                    >
-                      <FaEnvelope />
-                    </Button>
+                    <Button as={Link} to={`/profile/${person._id}`} variant="outline-primary" size="sm">View Profile</Button>
+                    <Button variant="outline-warning" size="sm" onClick={() => handleFollow(person._id)}><FaUserPlus className="me-1" /> Follow</Button>
+                    <Button as={Link} to={`/messages?user=${person._id}`} variant="outline-success" size="sm"><FaEnvelope /></Button>
                   </div>
                 </Card.Body>
               </Card>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { jobAPI } from '../services/api';
-import { Container, Card, Button, Form, Table, Modal, Spinner, Badge, Row, Col } from 'react-bootstrap';
+import { Container, Card, Button, Form, Table, Modal, Spinner, Badge, Row, Col, Alert } from 'react-bootstrap';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -10,6 +10,7 @@ const EmployerDashboard = () => {
   const { user } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [formData, setFormData] = useState({
@@ -23,16 +24,21 @@ const EmployerDashboard = () => {
   useEffect(() => {
     if (user && user.role === 'employer') {
       fetchMyJobs();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const fetchMyJobs = async () => {
     try {
+      setError(null);
       const res = await jobAPI.getMyJobs();
-      setJobs(res.data);
+      setJobs(res.data || []);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load your jobs');
+      setError('Failed to load your jobs. Please try again.');
+      toast.error('Failed to load jobs');
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -103,11 +109,20 @@ const EmployerDashboard = () => {
     setBenefitInput('');
   };
 
-  if (!user || user.role !== 'employer') {
+  if (!user) {
     return (
       <Container className="py-5 text-center">
-        <Badge bg="warning">Only employers can access this page.</Badge>
-        <Button as={Link} to="/" variant="primary" className="mt-3">Go Home</Button>
+        <Alert variant="warning">Please login to access this page.</Alert>
+        <Button as={Link} to="/login" variant="warning">Login</Button>
+      </Container>
+    );
+  }
+
+  if (user.role !== 'employer') {
+    return (
+      <Container className="py-5 text-center">
+        <Alert variant="danger">Only employers can access this page.</Alert>
+        <Button as={Link} to="/" variant="primary">Go Home</Button>
       </Container>
     );
   }
@@ -116,6 +131,7 @@ const EmployerDashboard = () => {
     return (
       <div className="text-center mt-5">
         <Spinner animation="border" variant="warning" />
+        <p className="mt-2">Loading your jobs...</p>
       </div>
     );
   }
@@ -128,6 +144,8 @@ const EmployerDashboard = () => {
           <FaPlus className="me-2" /> Post New Job
         </Button>
       </div>
+
+      {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
 
       {jobs.length === 0 ? (
         <Card className="text-center py-5">
@@ -184,8 +202,8 @@ const EmployerDashboard = () => {
             </Row>
             <Form.Group className="mb-3"><Form.Label>Description *</Form.Label><Form.Control as="textarea" rows={3} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} required /></Form.Group>
             <Row>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Requirements</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={reqInput} onChange={e => setReqInput(e.target.value)} placeholder="e.g., 2 years experience" /><Button type="button" variant="outline-warning" onClick={addRequirement} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.requirements.map((req, idx) => (<Badge key={idx} bg="secondary" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeRequirement(idx)}>{req} ✕</Badge>))}</div></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Benefits</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={benefitInput} onChange={e => setBenefitInput(e.target.value)} placeholder="e.g., Medical insurance" /><Button type="button" variant="outline-warning" onClick={addBenefit} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.benefits.map((benefit, idx) => (<Badge key={idx} bg="success" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeBenefit(idx)}>{benefit} ✕</Badge>))}</div></Form.Group></Col>
+              <Col md={6}><Form.Group><Form.Label>Requirements</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={reqInput} onChange={e => setReqInput(e.target.value)} placeholder="e.g., 2 years experience" /><Button type="button" variant="outline-warning" onClick={addRequirement} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.requirements.map((req, idx) => (<Badge key={idx} bg="secondary" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeRequirement(idx)}>{req} ✕</Badge>))}</div></Form.Group></Col>
+              <Col md={6}><Form.Group><Form.Label>Benefits</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={benefitInput} onChange={e => setBenefitInput(e.target.value)} placeholder="e.g., Medical insurance" /><Button type="button" variant="outline-warning" onClick={addBenefit} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.benefits.map((benefit, idx) => (<Badge key={idx} bg="success" className="p-2" style={{ cursor: 'pointer' }} onClick={() => removeBenefit(idx)}>{benefit} ✕</Badge>))}</div></Form.Group></Col>
             </Row>
             <div className="d-flex justify-content-end gap-2 mt-3">
               <Button variant="secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancel</Button>
