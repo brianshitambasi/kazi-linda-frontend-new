@@ -4,10 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { 
   FaHeart, FaComment, FaShare, FaUserPlus, FaSmile, FaImage, 
   FaVideo, FaEllipsisH, FaGlobe, FaUsers, FaCamera, 
-  FaPaperPlane, FaBookmark, FaTimes, FaFileVideo
+  FaPaperPlane, FaBookmark, FaTimes, FaUpload, FaCompress, FaFileVideo
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import VideoPlayer from '../components/VideoPlayer';
 import toast from 'react-hot-toast';
 import moment from 'moment';
 
@@ -47,7 +46,6 @@ const NewsFeed = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      console.log('Fetched posts:', data);
       setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching feed:', err);
@@ -117,7 +115,9 @@ const NewsFeed = () => {
     fetchFeed();
     fetchSuggestions();
     fetchOnlineFriends();
-    const interval = setInterval(() => fetchFeed(), 30000);
+    const interval = setInterval(() => {
+      fetchFeed();
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchFeed, fetchSuggestions, fetchOnlineFriends]);
 
@@ -135,14 +135,23 @@ const NewsFeed = () => {
     formData.append('upload_preset', 'kazi_linda_uploads');
     formData.append('resource_type', mediaType === 'video' ? 'video' : 'image');
     
+    // For large videos, use chunked upload
+    if (mediaType === 'video' && file.size > 10 * 1024 * 1024) {
+      formData.append('chunk_size', 5242880); // 5MB chunks
+      formData.append('chunk_number', 0);
+    }
+    
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/denczbmin/${mediaType === 'video' ? 'video' : 'image'}/upload`);
+      
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          setUploadProgress((event.loaded / event.total) * 100);
+          const percentComplete = (event.loaded / event.total) * 100;
+          setUploadProgress(percentComplete);
         }
       };
+      
       xhr.onload = () => {
         if (xhr.status === 200) {
           const data = JSON.parse(xhr.response);
@@ -151,6 +160,7 @@ const NewsFeed = () => {
           reject(new Error('Upload failed'));
         }
       };
+      
       xhr.onerror = () => reject(new Error('Upload failed'));
       xhr.send(formData);
     });
@@ -162,10 +172,13 @@ const NewsFeed = () => {
       toast.error('Please select MP4, MOV, AVI, MKV, or WEBM video file');
       return false;
     }
+    
+    // Allow up to 500MB for videos
     if (file.size > 500 * 1024 * 1024) {
       toast.error('Video must be less than 500MB');
       return false;
     }
+    
     return true;
   };
 
@@ -185,7 +198,13 @@ const NewsFeed = () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    const isValid = type === 'photo' ? validateImage(file) : validateVideo(file);
+    let isValid = false;
+    if (type === 'photo') {
+      isValid = validateImage(file);
+    } else {
+      isValid = validateVideo(file);
+    }
+    
     if (!isValid) return;
     
     setSelectedMedia(file);
@@ -314,6 +333,7 @@ const NewsFeed = () => {
       toast.error('Image must be less than 5MB');
       return;
     }
+    
     setCoverFile(file);
     setCoverPreview(URL.createObjectURL(file));
   };
@@ -381,7 +401,7 @@ const NewsFeed = () => {
     <div className="newsfeed-container">
       <Container fluid className="px-4">
         <Row>
-          {/* Left Sidebar - User Info & Followers */}
+          {/* Left Sidebar */}
           <Col lg={3} className="d-none d-lg-block">
             <div className="left-sidebar">
               <Card className="mb-3">
@@ -427,7 +447,6 @@ const NewsFeed = () => {
                 </Card.Body>
               </Card>
               
-              {/* Online Friends */}
               <Card>
                 <Card.Header className="bg-white fw-bold">Online Friends</Card.Header>
                 <Card.Body className="p-0">
@@ -450,12 +469,7 @@ const NewsFeed = () => {
                           )}
                           <span className="online-dot"></span>
                         </div>
-                        <div>
-                          <Link to={`/profile/${friend._id}`} className="text-decoration-none text-dark fw-bold small">
-                            {friend.name}
-                          </Link>
-                          <div className="text-muted small">{friend.role}</div>
-                        </div>
+                        <span className="ms-2">{friend.name}</span>
                       </div>
                     ))
                   )}
@@ -464,39 +478,42 @@ const NewsFeed = () => {
             </div>
           </Col>
 
-          {/* Main Feed - Posts */}
+          {/* Main Feed */}
           <Col lg={6}>
-            {/* Create Post Card */}
             <Card className="mb-3">
               <Card.Body>
-                <div className="d-flex align-items-start gap-2">
+                <div className="d-flex align-items-start">
                   {user?.profilePicture ? (
                     <Image 
                       src={user.profilePicture} 
                       roundedCircle 
                       width="40" 
                       height="40" 
+                      className="me-2"
                       style={{ objectFit: 'cover' }}
                     />
                   ) : (
-                    <div className="bg-secondary rounded-circle" style={{ width: '40px', height: '40px' }} />
+                    <div className="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                      <FaUsers size={20} className="text-white" />
+                    </div>
                   )}
                   <Form.Control
                     as="textarea"
                     rows={2}
-                    placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || 'User'}?`}
+                    placeholder={`What's on your mind, ${user?.name?.split(' ')[0]}?`}
                     value={newPost}
                     onChange={(e) => setNewPost(e.target.value)}
                     className="bg-light border-0"
                   />
                 </div>
                 
+                {/* Media Preview */}
                 {mediaPreview && (
                   <div className="mt-3 position-relative">
                     {mediaType === 'photo' ? (
                       <Image src={mediaPreview} fluid rounded className="border" />
                     ) : (
-                      <VideoPlayer url={mediaPreview} className="w-100 rounded border" style={{ maxHeight: '400px' }} />
+                      <video src={mediaPreview} controls controlsList="nodownload" playsInline className="w-100 rounded border" style={{ maxHeight: '400px' }} />
                     )}
                     <div className="mt-2 d-flex justify-content-between align-items-center">
                       <small className="text-muted">
@@ -563,7 +580,6 @@ const NewsFeed = () => {
               </Card.Body>
             </Card>
 
-            {/* Posts Feed */}
             {posts.length === 0 ? (
               <Card className="text-center py-5">
                 <Card.Body>
@@ -577,7 +593,7 @@ const NewsFeed = () => {
                 <Card key={post._id} className="mb-3">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-3">
-                      <div className="d-flex gap-2">
+                      <div className="d-flex">
                         <Link to={`/profile/${post.author?._id}`}>
                           {post.author?.profilePicture ? (
                             <Image 
@@ -585,10 +601,11 @@ const NewsFeed = () => {
                               roundedCircle 
                               width="40" 
                               height="40" 
+                              className="me-2"
                               style={{ objectFit: 'cover' }}
                             />
                           ) : (
-                            <div className="bg-secondary rounded-circle" style={{ width: '40px', height: '40px' }} />
+                            <div className="bg-secondary rounded-circle me-2" style={{ width: '40px', height: '40px' }} />
                           )}
                         </Link>
                         <div>
@@ -608,7 +625,15 @@ const NewsFeed = () => {
                     {post.media && post.media.length > 0 && (
                       <div className="mb-3">
                         {post.mediaType === 'video' ? (
-                          <VideoPlayer url={post.media[0]} className="w-100 rounded" style={{ maxHeight: '500px' }} />
+                          <video 
+                            src={post.media[0]} 
+                            controls controlsList="nodownload" playsInline 
+                            className="w-100 rounded"
+                            style={{ maxHeight: '500px' }}
+                            preload="metadata"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
                         ) : (
                           <Image src={post.media[0]} fluid rounded />
                         )}
@@ -648,9 +673,9 @@ const NewsFeed = () => {
                     {post.comments?.length > 0 && (
                       <div className="mt-3 pt-2 border-top">
                         {post.comments.slice(0, 2).map(comment => (
-                          <div key={comment._id} className="mb-2 d-flex gap-2">
+                          <div key={comment._id} className="mb-2">
                             <strong>{comment.user?.name}</strong>
-                            <small className="text-muted">{comment.text}</small>
+                            <small className="text-muted ms-2">{comment.text}</small>
                           </div>
                         ))}
                         {post.comments.length > 2 && (
@@ -666,7 +691,7 @@ const NewsFeed = () => {
             )}
           </Col>
 
-          {/* Right Sidebar - Suggested Users */}
+          {/* Right Sidebar */}
           <Col lg={3} className="d-none d-lg-block">
             <Card>
               <Card.Header className="bg-white fw-bold">Suggested for you</Card.Header>
@@ -675,7 +700,7 @@ const NewsFeed = () => {
                   <div className="text-center p-3 text-muted small">No suggestions</div>
                 ) : (
                   suggestedUsers.map(suggestion => (
-                    <div key={suggestion._id} className="d-flex align-items-center p-2 border-bottom gap-2">
+                    <div key={suggestion._id} className="d-flex align-items-center p-2 border-bottom">
                       <Link to={`/profile/${suggestion._id}`}>
                         {suggestion.profilePicture ? (
                           <Image 
@@ -683,10 +708,11 @@ const NewsFeed = () => {
                             roundedCircle 
                             width="40" 
                             height="40" 
+                            className="me-2"
                             style={{ objectFit: 'cover' }}
                           />
                         ) : (
-                          <div className="bg-secondary rounded-circle" style={{ width: '40px', height: '40px' }} />
+                          <div className="bg-secondary rounded-circle me-2" style={{ width: '40px', height: '40px' }} />
                         )}
                       </Link>
                       <div className="flex-grow-1">
@@ -707,9 +733,11 @@ const NewsFeed = () => {
         </Row>
       </Container>
 
-      {/* Modals */}
+      {/* Comment Modal */}
       <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)}>
-        <Modal.Header closeButton><Modal.Title>Comments</Modal.Title></Modal.Header>
+        <Modal.Header closeButton>
+          <Modal.Title>Comments</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
           {selectedPost?.comments?.map(comment => (
             <div key={comment._id} className="mb-3">
@@ -732,8 +760,11 @@ const NewsFeed = () => {
         </Modal.Body>
       </Modal>
 
+      {/* Share Modal */}
       <Modal show={showShareModal} onHide={() => setShowShareModal(false)}>
-        <Modal.Header closeButton><Modal.Title>Share this post</Modal.Title></Modal.Header>
+        <Modal.Header closeButton>
+          <Modal.Title>Share this post</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
           <Form.Control
             as="textarea"
@@ -749,30 +780,47 @@ const NewsFeed = () => {
         </Modal.Footer>
       </Modal>
 
+      {/* Cover Photo Modal */}
       <Modal show={showCoverModal} onHide={() => setShowCoverModal(false)}>
-        <Modal.Header closeButton><Modal.Title>Update Cover Photo</Modal.Title></Modal.Header>
+        <Modal.Header closeButton>
+          <Modal.Title>Update Cover Photo</Modal.Title>
+        </Modal.Header>
         <Modal.Body className="text-center">
-          {coverPreview ? <Image src={coverPreview} fluid rounded className="mb-3" /> : (
-            <div className="border rounded p-5 mb-3"><FaCamera size={40} className="text-muted" /><p className="mt-2">Select a cover photo</p></div>
+          {coverPreview ? (
+            <Image src={coverPreview} fluid rounded className="mb-3" />
+          ) : (
+            <div className="border rounded p-5 mb-3">
+              <FaCamera size={40} className="text-muted" />
+              <p className="mt-2">Select a cover photo</p>
+            </div>
           )}
-          <input type="file" accept="image/*" onChange={handleCoverUpload} className="form-control mb-3" />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleCoverUpload}
+            className="form-control mb-3"
+          />
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowCoverModal(false)}>Cancel</Button>
-          <Button variant="warning" onClick={uploadCoverPhoto} disabled={uploadingCover}>{uploadingCover ? 'Uploading...' : 'Save Cover'}</Button>
+          <Button variant="warning" onClick={uploadCoverPhoto} disabled={uploadingCover}>
+            {uploadingCover ? 'Uploading...' : 'Save Cover'}
+          </Button>
         </Modal.Footer>
       </Modal>
 
       {/* Followers Modal */}
       <Modal show={showFollowersModal} onHide={() => setShowFollowersModal(false)}>
-        <Modal.Header closeButton><Modal.Title>Followers</Modal.Title></Modal.Header>
+        <Modal.Header closeButton>
+          <Modal.Title>Followers</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
           {followersList.map(follower => (
-            <div key={follower._id} className="d-flex align-items-center mb-2 gap-2">
+            <div key={follower._id} className="d-flex align-items-center mb-3">
               {follower.profilePicture ? (
-                <Image src={follower.profilePicture} roundedCircle width="40" height="40" />
+                <Image src={follower.profilePicture} roundedCircle width="40" height="40" className="me-2" />
               ) : (
-                <FaUsers size={40} className="text-muted" />
+                <FaUsers size={40} className="text-muted me-2" />
               )}
               <div>
                 <Link to={`/profile/${follower._id}`} className="text-decoration-none text-dark fw-bold">
@@ -787,14 +835,16 @@ const NewsFeed = () => {
 
       {/* Following Modal */}
       <Modal show={showFollowingModal} onHide={() => setShowFollowingModal(false)}>
-        <Modal.Header closeButton><Modal.Title>Following</Modal.Title></Modal.Header>
+        <Modal.Header closeButton>
+          <Modal.Title>Following</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
           {followingList.map(following => (
-            <div key={following._id} className="d-flex align-items-center mb-2 gap-2">
+            <div key={following._id} className="d-flex align-items-center mb-3">
               {following.profilePicture ? (
-                <Image src={following.profilePicture} roundedCircle width="40" height="40" />
+                <Image src={following.profilePicture} roundedCircle width="40" height="40" className="me-2" />
               ) : (
-                <FaUsers size={40} className="text-muted" />
+                <FaUsers size={40} className="text-muted me-2" />
               )}
               <div>
                 <Link to={`/profile/${following._id}`} className="text-decoration-none text-dark fw-bold">
@@ -818,3 +868,25 @@ const NewsFeed = () => {
 };
 
 export default NewsFeed;
+// Replace the video player code in the post display section
+// Look for this section in the code and replace with:
+
+{post.media && post.media.length > 0 && (
+  <div className="mb-3">
+    {post.mediaType === 'video' ? (
+      <video 
+        src={post.media[0]} 
+        controls controlsList="nodownload" playsInline 
+        controlsList="nodownload"
+        className="w-100 rounded"
+        style={{ maxHeight: '500px', background: 'black' }}
+        preload="metadata"
+        playsInline
+      >
+        Your browser does not support the video tag.
+      </video>
+    ) : (
+      <Image src={post.media[0]} fluid rounded />
+    )}
+  </div>
+)}

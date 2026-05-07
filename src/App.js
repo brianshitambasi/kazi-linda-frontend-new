@@ -23,7 +23,6 @@ import NewsFeed from './pages/NewsFeed';
 import Profile from './pages/Profile';
 import Discover from './pages/Discover';
 
-// Redirect component for logged-in users
 const HomeRedirect = () => {
   const { user } = useAuth();
   return user ? <Navigate to="/news" /> : <Home />;
@@ -36,7 +35,6 @@ function App() {
         <Layout>
           <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
           <Routes>
-            {/* Public Routes */}
             <Route path="/" element={<HomeRedirect />} />
             <Route path="/about" element={<About />} />
             <Route path="/jobs" element={<Jobs />} />
@@ -44,17 +42,15 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<RegisterEnhanced />} />
             
-            {/* Protected Routes */}
             <Route path="/news" element={<ProtectedRoute><NewsFeed /></ProtectedRoute>} />
             <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
             <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
             <Route path="/verify" element={<ProtectedRoute><VerifyEmployer /></ProtectedRoute>} />
             <Route path="/blacklist" element={<ProtectedRoute><Blacklist /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-            <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
             
-            {/* Role-Specific Dashboards */}
             <Route path="/dashboard" element={<ProtectedRoute><WorkerDashboard /></ProtectedRoute>} />
             <Route path="/employer/dashboard" element={<ProtectedRoute><EmployerDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
