@@ -19,6 +19,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import EmbassyDashboard from './pages/EmbassyDashboard';
 import Messages from './pages/Messages/Messages';
 import ProfileEdit from './pages/ProfileEdit';
+import Profile from './pages/Profile';
 import SocialFeed from './components/SocialFeed';
 import Friends from './pages/Friends';
 
@@ -43,6 +44,7 @@ function App() {
             <Route path="/blacklist" element={<ProtectedRoute><Blacklist /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+<Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/news" element={<ProtectedRoute><SocialFeed /></ProtectedRoute>} />
             <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             
