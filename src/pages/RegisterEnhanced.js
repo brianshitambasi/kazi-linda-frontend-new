@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Form, Button, Card, Container, Row, Col, Alert, ProgressBar, Badge } from 'react-bootstrap';
+import { Form, Button, Card, Container, Row, Col, Alert, ProgressBar, Badge, Image } from 'react-bootstrap';
 import { 
   FaUser, FaEnvelope, FaPhone, FaLock, FaUserPlus, FaCheckCircle, 
   FaBuilding, FaBriefcase, FaShieldAlt, FaArrowRight, FaArrowLeft,
-  FaGlobe, FaMapMarkerAlt, FaLanguage
+  FaGlobe, FaMapMarkerAlt, FaLanguage, FaCamera
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -15,34 +15,25 @@ const RegisterEnhanced = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   
   // Form data
   const [formData, setFormData] = useState({
-    // Step 1: Basic Info
     name: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
     role: 'worker',
-    
-    // Step 2: Personal Info
     countryOfOrigin: 'Kenya',
     currentCountry: '',
     currentCity: '',
     bio: '',
-    
-    // Step 3: Professional Info
     skills: [],
     experience: '',
     languages: [],
-    
-    // Step 4: Emergency Contact
-    nextOfKin: {
-      name: '',
-      phone: '',
-      relationship: ''
-    }
+    nextOfKin: { name: '', phone: '', relationship: '' }
   });
   
   const [skillInput, setSkillInput] = useState('');
@@ -56,21 +47,58 @@ const RegisterEnhanced = () => {
     { value: 'embassy', label: 'Embassy Staff', icon: FaShieldAlt, desc: 'Government/Embassy personnel', color: 'danger' }
   ];
 
+  const handleProfilePictureSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+      setProfilePicture(file);
+      setProfilePicturePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadProfilePicture = async (token) => {
+    if (!profilePicture) return null;
+    
+    const formData = new FormData();
+    formData.append('file', profilePicture);
+    formData.append('upload_preset', 'kazi_linda_uploads');
+    
+    try {
+      const res = await fetch('https://api.cloudinary.com/v1_1/denczbmin/image/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.secure_url) {
+        await fetch('https://kazi-linda.onrender.com/api/profile/me', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ profilePicture: data.secure_url })
+        });
+        return data.secure_url;
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+    }
+    return null;
+  };
+
   const addSkill = () => {
     if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
-      setFormData({
-        ...formData,
-        skills: [...formData.skills, skillInput.trim()]
-      });
+      setFormData({ ...formData, skills: [...formData.skills, skillInput.trim()] });
       setSkillInput('');
     }
   };
 
   const removeSkill = (skill) => {
-    setFormData({
-      ...formData,
-      skills: formData.skills.filter(s => s !== skill)
-    });
+    setFormData({ ...formData, skills: formData.skills.filter(s => s !== skill) });
   };
 
   const addLanguage = () => {
@@ -85,10 +113,7 @@ const RegisterEnhanced = () => {
   };
 
   const removeLanguage = (index) => {
-    setFormData({
-      ...formData,
-      languages: formData.languages.filter((_, i) => i !== index)
-    });
+    setFormData({ ...formData, languages: formData.languages.filter((_, i) => i !== index) });
   };
 
   const handleChange = (e) => {
@@ -121,7 +146,6 @@ const RegisterEnhanced = () => {
     setError('');
     
     try {
-      // First register the user
       const registerData = {
         name: formData.name,
         email: formData.email,
@@ -131,11 +155,11 @@ const RegisterEnhanced = () => {
       };
       
       await register(registerData);
-      
-      // Then update profile with additional info
       const token = localStorage.getItem('token');
       
-      // Update profile with personal and professional info
+      // Upload profile picture if selected
+      await uploadProfilePicture(token);
+      
       await fetch('https://kazi-linda.onrender.com/api/profile/me', {
         method: 'PUT',
         headers: {
@@ -153,21 +177,15 @@ const RegisterEnhanced = () => {
         })
       });
       
-      // Add languages
       for (const lang of formData.languages) {
         await fetch('https://kazi-linda.onrender.com/api/profile/language', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(lang)
         });
       }
       
       toast.success('Account created successfully!');
-      
-      // Redirect based on role
       const dashboards = {
         worker: '/dashboard',
         employer: '/employer/dashboard',
@@ -176,7 +194,6 @@ const RegisterEnhanced = () => {
         embassy: '/embassy/dashboard'
       };
       navigate(dashboards[formData.role] || '/dashboard');
-      
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
       toast.error('Registration failed');
@@ -185,15 +202,12 @@ const RegisterEnhanced = () => {
     }
   };
 
-  const getProgress = () => {
-    return (step / 4) * 100;
-  };
+  const getProgress = () => (step / 4) * 100;
 
   return (
     <Container className="py-4">
       <Row className="justify-content-center">
         <Col md={8} lg={7}>
-          {/* Progress Bar */}
           <div className="mb-4">
             <ProgressBar now={getProgress()} label={`${Math.round(getProgress())}% Complete`} variant="warning" />
             <div className="d-flex justify-content-between mt-2">
@@ -217,23 +231,42 @@ const RegisterEnhanced = () => {
               {error && <Alert variant="danger">{error}</Alert>}
               
               <Form onSubmit={step === 4 ? handleSubmit : (e) => e.preventDefault()}>
-                
-                {/* Step 1: Basic Information */}
                 {step === 1 && (
-                  <div className="step-content">
+                  <div>
                     <h5 className="mb-3">Basic Information</h5>
+                    
+                    {/* Profile Picture Upload */}
+                    <div className="text-center mb-3">
+                      <div className="position-relative d-inline-block">
+                        {profilePicturePreview ? (
+                          <Image src={profilePicturePreview} roundedCircle width="100" height="100" className="border" />
+                        ) : (
+                          <FaUser size={100} className="text-muted" />
+                        )}
+                        <Button
+                          variant="light"
+                          size="sm"
+                          className="position-absolute bottom-0 end-0 rounded-circle"
+                          onClick={() => document.getElementById('profilePicInput').click()}
+                        >
+                          <FaCamera size={12} />
+                        </Button>
+                        <input
+                          id="profilePicInput"
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handleProfilePictureSelect}
+                        />
+                      </div>
+                      <small className="text-muted d-block mt-2">Add a profile picture (optional)</small>
+                    </div>
                     
                     <Form.Group className="mb-3">
                       <Form.Label>Full Name</Form.Label>
                       <div className="input-group">
                         <span className="input-group-text bg-light"><FaUser /></span>
-                        <Form.Control 
-                          name="name" 
-                          value={formData.name}
-                          onChange={handleChange}
-                          placeholder="Enter your full name" 
-                          required 
-                        />
+                        <Form.Control name="name" value={formData.name} onChange={handleChange} placeholder="Enter your full name" required />
                       </div>
                     </Form.Group>
                     
@@ -241,14 +274,7 @@ const RegisterEnhanced = () => {
                       <Form.Label>Email Address</Form.Label>
                       <div className="input-group">
                         <span className="input-group-text bg-light"><FaEnvelope /></span>
-                        <Form.Control 
-                          name="email" 
-                          type="email" 
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="your@email.com" 
-                          required 
-                        />
+                        <Form.Control name="email" type="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" required />
                       </div>
                     </Form.Group>
                     
@@ -256,13 +282,7 @@ const RegisterEnhanced = () => {
                       <Form.Label>Phone Number</Form.Label>
                       <div className="input-group">
                         <span className="input-group-text bg-light"><FaPhone /></span>
-                        <Form.Control 
-                          name="phone" 
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="0712345678" 
-                          required 
-                        />
+                        <Form.Control name="phone" value={formData.phone} onChange={handleChange} placeholder="0712345678" required />
                       </div>
                     </Form.Group>
                     
@@ -270,14 +290,7 @@ const RegisterEnhanced = () => {
                       <Form.Label>Password</Form.Label>
                       <div className="input-group">
                         <span className="input-group-text bg-light"><FaLock /></span>
-                        <Form.Control 
-                          name="password" 
-                          type="password" 
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="Create password" 
-                          required 
-                        />
+                        <Form.Control name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Create password" required />
                       </div>
                     </Form.Group>
                     
@@ -285,14 +298,7 @@ const RegisterEnhanced = () => {
                       <Form.Label>Confirm Password</Form.Label>
                       <div className="input-group">
                         <span className="input-group-text bg-light"><FaCheckCircle /></span>
-                        <Form.Control 
-                          name="confirmPassword" 
-                          type="password" 
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                          placeholder="Confirm password" 
-                          required 
-                        />
+                        <Form.Control name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm password" required />
                       </div>
                     </Form.Group>
                     
@@ -322,210 +328,54 @@ const RegisterEnhanced = () => {
                   </div>
                 )}
                 
-                {/* Step 2: Personal Information */}
                 {step === 2 && (
-                  <div className="step-content">
+                  <div>
                     <h5 className="mb-3">Personal Information</h5>
-                    
                     <Form.Group className="mb-3">
                       <Form.Label>Bio / About You</Form.Label>
-                      <Form.Control 
-                        as="textarea" 
-                        rows={3}
-                        name="bio"
-                        value={formData.bio}
-                        onChange={handleChange}
-                        placeholder="Tell us about yourself..." 
-                      />
+                      <Form.Control as="textarea" rows={3} name="bio" value={formData.bio} onChange={handleChange} placeholder="Tell us about yourself..." />
                     </Form.Group>
-                    
                     <Row>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label><FaGlobe className="me-2" /> Country of Origin</Form.Label>
-                          <Form.Select 
-                            name="countryOfOrigin"
-                            value={formData.countryOfOrigin}
-                            onChange={handleChange}
-                          >
-                            <option value="Kenya">Kenya</option>
-                            <option value="Uganda">Uganda</option>
-                            <option value="Tanzania">Tanzania</option>
-                            <option value="Other">Other</option>
-                          </Form.Select>
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label><FaMapMarkerAlt className="me-2" /> Current Country</Form.Label>
-                          <Form.Control 
-                            name="currentCountry"
-                            value={formData.currentCountry}
-                            onChange={handleChange}
-                            placeholder="e.g., United Arab Emirates" 
-                          />
-                        </Form.Group>
-                      </Col>
+                      <Col md={6}><Form.Group><Form.Label><FaGlobe className="me-2" /> Country of Origin</Form.Label><Form.Select name="countryOfOrigin" value={formData.countryOfOrigin} onChange={handleChange}><option>Kenya</option><option>Uganda</option><option>Tanzania</option></Form.Select></Form.Group></Col>
+                      <Col md={6}><Form.Group><Form.Label><FaMapMarkerAlt className="me-2" /> Current Country</Form.Label><Form.Control name="currentCountry" value={formData.currentCountry} onChange={handleChange} placeholder="e.g., UAE" /></Form.Group></Col>
                     </Row>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Current City</Form.Label>
-                      <Form.Control 
-                        name="currentCity"
-                        value={formData.currentCity}
-                        onChange={handleChange}
-                        placeholder="e.g., Dubai" 
-                      />
-                    </Form.Group>
+                    <Form.Group><Form.Label>Current City</Form.Label><Form.Control name="currentCity" value={formData.currentCity} onChange={handleChange} placeholder="e.g., Dubai" /></Form.Group>
                   </div>
                 )}
                 
-                {/* Step 3: Professional Information */}
                 {step === 3 && (
-                  <div className="step-content">
+                  <div>
                     <h5 className="mb-3">Professional Information</h5>
-                    
                     <Form.Group className="mb-3">
                       <Form.Label>Skills</Form.Label>
                       <div className="d-flex mb-2">
-                        <Form.Control
-                          type="text"
-                          value={skillInput}
-                          onChange={(e) => setSkillInput(e.target.value)}
-                          placeholder="e.g., Carpentry, Plumbing, Painting"
-                          onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-                        />
-                        <Button variant="outline-warning" onClick={addSkill} className="ms-2">
-                          Add
-                        </Button>
+                        <Form.Control type="text" value={skillInput} onChange={e => setSkillInput(e.target.value)} placeholder="e.g., Carpentry" onKeyPress={e => e.key === 'Enter' && addSkill()} />
+                        <Button variant="outline-warning" onClick={addSkill} className="ms-2">Add</Button>
                       </div>
-                      <div className="d-flex flex-wrap gap-2">
-                        {formData.skills.map((skill, idx) => (
-                          <Badge key={idx} bg="info" className="px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeSkill(skill)}>
-                            {skill} ✕
-                          </Badge>
-                        ))}
-                      </div>
+                      <div className="d-flex flex-wrap gap-2">{formData.skills.map((skill, idx) => (<Badge key={idx} bg="info" className="px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeSkill(skill)}>{skill} ✕</Badge>))}</div>
                     </Form.Group>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Experience</Form.Label>
-                      <Form.Control 
-                        as="textarea" 
-                        rows={2}
-                        name="experience"
-                        value={formData.experience}
-                        onChange={handleChange}
-                        placeholder="e.g., 5 years in construction, worked on major projects..." 
-                      />
-                    </Form.Group>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label><FaLanguage className="me-2" /> Languages</Form.Label>
-                      <div className="d-flex gap-2 mb-2">
-                        <Form.Control
-                          type="text"
-                          value={languageInput}
-                          onChange={(e) => setLanguageInput(e.target.value)}
-                          placeholder="Language name"
-                          style={{ flex: 2 }}
-                        />
-                        <Form.Select 
-                          value={languageProficiency} 
-                          onChange={(e) => setLanguageProficiency(e.target.value)}
-                          style={{ flex: 1 }}
-                        >
-                          <option value="basic">Basic</option>
-                          <option value="intermediate">Intermediate</option>
-                          <option value="fluent">Fluent</option>
-                          <option value="native">Native</option>
-                        </Form.Select>
-                        <Button variant="outline-warning" onClick={addLanguage}>
-                          Add
-                        </Button>
-                      </div>
-                      <div>
-                        {formData.languages.map((lang, idx) => (
-                          <Badge key={idx} bg="secondary" className="me-2 mb-2 px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeLanguage(idx)}>
-                            {lang.name} - {lang.proficiency} ✕
-                          </Badge>
-                        ))}
-                      </div>
-                    </Form.Group>
+                    <Form.Group className="mb-3"><Form.Label>Experience</Form.Label><Form.Control as="textarea" rows={2} name="experience" value={formData.experience} onChange={handleChange} placeholder="e.g., 5 years in construction..." /></Form.Group>
+                    <Form.Group><Form.Label><FaLanguage className="me-2" /> Languages</Form.Label><div className="d-flex gap-2 mb-2"><Form.Control type="text" value={languageInput} onChange={e => setLanguageInput(e.target.value)} placeholder="Language" style={{ flex: 2 }} /><Form.Select value={languageProficiency} onChange={e => setLanguageProficiency(e.target.value)} style={{ flex: 1 }}><option value="basic">Basic</option><option value="intermediate">Intermediate</option><option value="fluent">Fluent</option><option value="native">Native</option></Form.Select><Button variant="outline-warning" onClick={addLanguage}>Add</Button></div><div>{formData.languages.map((lang, idx) => (<Badge key={idx} bg="secondary" className="me-2 mb-2 px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeLanguage(idx)}>{lang.name} - {lang.proficiency} ✕</Badge>))}</div></Form.Group>
                   </div>
                 )}
                 
-                {/* Step 4: Emergency Contact */}
                 {step === 4 && (
-                  <div className="step-content">
+                  <div>
                     <h5 className="mb-3">Emergency Contact</h5>
                     <p className="text-muted small mb-3">This information will only be used in case of emergency</p>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Emergency Contact Name</Form.Label>
-                      <Form.Control 
-                        name="nextOfKin.name"
-                        value={formData.nextOfKin.name}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          nextOfKin: { ...formData.nextOfKin, name: e.target.value }
-                        })}
-                        placeholder="Full name of emergency contact" 
-                      />
-                    </Form.Group>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Emergency Contact Phone</Form.Label>
-                      <Form.Control 
-                        name="nextOfKin.phone"
-                        value={formData.nextOfKin.phone}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          nextOfKin: { ...formData.nextOfKin, phone: e.target.value }
-                        })}
-                        placeholder="Phone number" 
-                      />
-                    </Form.Group>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Relationship</Form.Label>
-                      <Form.Control 
-                        name="nextOfKin.relationship"
-                        value={formData.nextOfKin.relationship}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          nextOfKin: { ...formData.nextOfKin, relationship: e.target.value }
-                        })}
-                        placeholder="e.g., Parent, Spouse, Sibling" 
-                      />
-                    </Form.Group>
+                    <Form.Group className="mb-3"><Form.Label>Emergency Contact Name</Form.Label><Form.Control value={formData.nextOfKin.name} onChange={e => setFormData({ ...formData, nextOfKin: { ...formData.nextOfKin, name: e.target.value } })} placeholder="Full name" /></Form.Group>
+                    <Form.Group className="mb-3"><Form.Label>Emergency Contact Phone</Form.Label><Form.Control value={formData.nextOfKin.phone} onChange={e => setFormData({ ...formData, nextOfKin: { ...formData.nextOfKin, phone: e.target.value } })} placeholder="Phone number" /></Form.Group>
+                    <Form.Group><Form.Label>Relationship</Form.Label><Form.Control value={formData.nextOfKin.relationship} onChange={e => setFormData({ ...formData, nextOfKin: { ...formData.nextOfKin, relationship: e.target.value } })} placeholder="e.g., Parent, Spouse" /></Form.Group>
                   </div>
                 )}
                 
-                {/* Navigation Buttons */}
                 <div className="d-flex justify-content-between mt-4">
-                  {step > 1 && (
-                    <Button variant="outline-secondary" onClick={handleBack}>
-                      <FaArrowLeft className="me-2" /> Back
-                    </Button>
-                  )}
-                  {step < 4 ? (
-                    <Button variant="warning" onClick={handleNext} className={step === 1 ? 'w-100' : ''}>
-                      Continue <FaArrowRight className="ms-2" />
-                    </Button>
-                  ) : (
-                    <Button variant="warning" type="submit" disabled={loading} className="w-100">
-                      {loading ? 'Creating Account...' : 'Create Account'}
-                    </Button>
-                  )}
+                  {step > 1 && <Button variant="outline-secondary" onClick={handleBack}><FaArrowLeft className="me-2" /> Back</Button>}
+                  {step < 4 ? <Button variant="warning" onClick={handleNext} className={step === 1 ? 'w-100' : ''}>Continue <FaArrowRight className="ms-2" /></Button> : <Button variant="warning" type="submit" disabled={loading} className="w-100">{loading ? 'Creating Account...' : 'Create Account'}</Button>}
                 </div>
               </Form>
               
-              <div className="text-center mt-4">
-                <Link to="/login" className="text-decoration-none">
-                  Already have an account? Login
-                </Link>
-              </div>
+              <div className="text-center mt-4"><Link to="/login" className="text-decoration-none">Already have an account? Login</Link></div>
             </Card.Body>
           </Card>
         </Col>
