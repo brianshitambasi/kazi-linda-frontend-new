@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { applicationAPI, profileAPI } from '../services/api';
 import { Container, Row, Col, Card, Spinner, Table, Button, Image } from 'react-bootstrap';
 import { FaBriefcase, FaCheckCircle, FaClock, FaStar, FaUserCircle } from 'react-icons/fa';
-import toast from 'react-hot-toast';
 
 const WorkerDashboard = () => {
   const { user, updateUser } = useAuth();

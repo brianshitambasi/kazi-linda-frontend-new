@@ -1,16 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { messageAPI } from '../../services/api';
 import { Container, Row, Col, Card, ListGroup, Form, Button, Badge, Spinner, Image } from 'react-bootstrap';
-import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaCircle, FaArrowLeft } from 'react-icons/fa';
+import { FaUserCircle, FaPhone, FaVideo, FaPaperPlane, FaMapMarkerAlt, FaCircle } from 'react-icons/fa';
 import ProfileModal from '../../components/ProfileModal';
-import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Messages = () => {
   const { user, token } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -21,16 +18,7 @@ const Messages = () => {
   const [selectedProfileUserId, setSelectedProfileUserId] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Check for user parameter in URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const userId = params.get('user');
-    if (userId && !selectedUser) {
-      fetchUserAndStartChat(userId);
-    }
-  }, [location]);
-
-  const fetchUserAndStartChat = async (userId) => {
+  const fetchUserAndStartChat = useCallback(async (userId) => {
     try {
       const res = await fetch(`https://kazi-linda.onrender.com/api/profile/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -41,7 +29,16 @@ const Messages = () => {
       console.error(err);
       toast.error('Could not load user');
     }
-  };
+  }, [token]);
+
+  // Check for user parameter in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('user');
+    if (userId && !selectedUser) {
+      fetchUserAndStartChat(userId);
+    }
+  }, [fetchUserAndStartChat, selectedUser]);
 
   // Update online status periodically
   useEffect(() => {
@@ -170,6 +167,13 @@ const Messages = () => {
 
   return (
     <Container fluid className="py-4">
+      <h2 className="mb-4">
+        Messages 
+        <Badge bg="warning" className="ms-2">
+          {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
+        </Badge>
+      </h2>
+      
       <Row>
         <Col md={4} lg={3}>
           <Card className="shadow-sm">
@@ -180,7 +184,7 @@ const Messages = () => {
               {conversations.length === 0 ? (
                 <ListGroup.Item className="text-center text-muted py-5">
                   No conversations yet<br />
-                  <small>Click on a user's profile to start chatting!</small>
+                  <small>Start by messaging someone!</small>
                 </ListGroup.Item>
               ) : (
                 conversations.map(conv => {
@@ -245,42 +249,33 @@ const Messages = () => {
             <Card className="shadow-sm h-100 d-flex flex-column">
               <Card.Header className="bg-white d-flex justify-content-between align-items-center">
                 <div className="d-flex align-items-center">
-                  <Button 
-                    variant="link" 
-                    className="d-md-none me-2 p-0"
-                    onClick={() => setSelectedUser(null)}
-                  >
-                    <FaArrowLeft />
-                  </Button>
-                  <div className="d-flex align-items-center" style={{ cursor: 'pointer' }} onClick={() => viewUserProfile(selectedUser._id)}>
-                    <div className="position-relative">
-                      {selectedUser.profilePicture ? (
-                        <Image 
-                          src={selectedUser.profilePicture} 
-                          roundedCircle 
-                          width="40" 
-                          height="40" 
-                          className="me-2"
-                          style={{ objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <FaUserCircle size={40} className="text-warning me-2" />
-                      )}
-                      {selectedUser.isOnline && (
-                        <FaCircle className="position-absolute bottom-0 end-0 text-success" size={12} style={{ border: '2px solid white', borderRadius: '50%' }} />
-                      )}
-                    </div>
+                  <div className="position-relative">
+                    {selectedUser.profilePicture ? (
+                      <Image 
+                        src={selectedUser.profilePicture} 
+                        roundedCircle 
+                        width="40" 
+                        height="40" 
+                        className="me-2"
+                        style={{ objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <FaUserCircle size={40} className="text-warning me-2" />
+                    )}
+                    {selectedUser.isOnline && (
+                      <FaCircle className="position-absolute bottom-0 end-0 text-success" size={12} style={{ border: '2px solid white', borderRadius: '50%' }} />
+                    )}
+                  </div>
+                  <div>
+                    <strong>{selectedUser.name}</strong>
                     <div>
-                      <strong>{selectedUser.name}</strong>
-                      <div>
-                        {getStatusBadge(selectedUser.currentStatus)}
-                        {selectedUser.currentCountry && (
-                          <span className="ms-2 text-muted small">
-                            <FaMapMarkerAlt className="me-1" />
-                            {selectedUser.currentCountry}
-                          </span>
-                        )}
-                      </div>
+                      {getStatusBadge(selectedUser.currentStatus)}
+                      {selectedUser.currentCountry && (
+                        <span className="ms-2 text-muted small">
+                          <FaMapMarkerAlt className="me-1" />
+                          {selectedUser.currentCountry}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
