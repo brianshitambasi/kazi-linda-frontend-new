@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Navbar as BsNavbar, Nav, Container, Button, Dropdown, Badge } from 'react-bootstrap';
+import { Navbar as BsNavbar, Nav, Container, Button, Dropdown, Badge, Image } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { messageAPI } from '../../services/api';
 import { 
-  FaHome, FaBriefcase, 
+  FaHome, FaBriefcase, FaClipboardList, 
   FaSignOutAlt, FaUser, FaSignInAlt, FaUserPlus, FaTachometerAlt,
   FaBars, FaTimes, FaInfoCircle, FaEnvelope, FaNewspaper
 } from 'react-icons/fa';
@@ -29,7 +29,6 @@ const Navbar = () => {
       const res = await messageAPI.getUnreadCount();
       setUnreadCount(res.data?.count || 0);
     } catch (err) {
-      // Silently fail - don't show errors for this
       console.log('Could not fetch unread count');
     }
   };
@@ -52,6 +51,10 @@ const Navbar = () => {
   };
 
   const isActive = (path) => location.pathname === path;
+
+  const isWorker = user?.role === 'worker';
+  const isEmployer = user?.role === 'employer';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <BsNavbar bg="dark" variant="dark" expand="lg" expanded={expanded} className="shadow-sm sticky-top">
@@ -76,6 +79,7 @@ const Navbar = () => {
             <Nav.Link as={Link} to="/jobs" className={isActive('/jobs') ? 'active text-warning' : ''} onClick={() => setExpanded(false)}>
               <FaBriefcase className="me-1" /> Jobs
             </Nav.Link>
+            
             {user && (
               <>
                 <Nav.Link as={Link} to="/news" className={isActive('/news') ? 'active text-warning' : ''} onClick={() => setExpanded(false)}>
@@ -87,13 +91,36 @@ const Navbar = () => {
                 </Nav.Link>
               </>
             )}
+            
+            {isEmployer && (
+              <Nav.Link as={Link} to="/employer/dashboard" className={isActive('/employer/dashboard') ? 'active text-warning' : ''} onClick={() => setExpanded(false)}>
+                <FaBriefcase className="me-1" /> My Jobs
+              </Nav.Link>
+            )}
+            
+            {isWorker && (
+              <Nav.Link as={Link} to="/applications" className={isActive('/applications') ? 'active text-warning' : ''} onClick={() => setExpanded(false)}>
+                <FaClipboardList className="me-1" /> My Apps
+              </Nav.Link>
+            )}
+            
+            {isAdmin && (
+              <Nav.Link as={Link} to="/admin/dashboard" className={isActive('/admin/dashboard') ? 'active text-warning' : ''} onClick={() => setExpanded(false)}>
+                <FaTachometerAlt className="me-1" /> Admin
+              </Nav.Link>
+            )}
           </Nav>
 
           <div className="d-flex">
             {user ? (
               <Dropdown align="end">
-                <Dropdown.Toggle variant="outline-warning" size="sm">
-                  <FaUser className="me-1" /> {user.name?.split(' ')[0]}
+                <Dropdown.Toggle variant="outline-warning" size="sm" className="d-flex align-items-center gap-2">
+                  {user.profilePicture ? (
+                    <Image src={user.profilePicture} roundedCircle width="28" height="28" />
+                  ) : (
+                    <FaUser />
+                  )}
+                  <span>{user.name?.split(' ')[0]}</span>
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
                   <Dropdown.Item as={Link} to={getDashboardPath()}>

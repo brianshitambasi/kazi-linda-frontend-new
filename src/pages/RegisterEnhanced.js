@@ -15,10 +15,9 @@ const RegisterEnhanced = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePictureFile, setProfilePictureFile] = useState(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   
-  // Form data
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -47,23 +46,11 @@ const RegisterEnhanced = () => {
     { value: 'embassy', label: 'Embassy Staff', icon: FaShieldAlt, desc: 'Government/Embassy personnel', color: 'danger' }
   ];
 
-  const handleProfilePictureSelect = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB');
-        return;
-      }
-      setProfilePicture(file);
-      setProfilePicturePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const uploadProfilePicture = async (token) => {
-    if (!profilePicture) return null;
+  const uploadProfilePicture = async (file, authToken) => {
+    if (!file) return null;
     
     const formData = new FormData();
-    formData.append('file', profilePicture);
+    formData.append('file', file);
     formData.append('upload_preset', 'kazi_linda_uploads');
     
     try {
@@ -77,7 +64,7 @@ const RegisterEnhanced = () => {
         await fetch('https://kazi-linda.onrender.com/api/profile/me', {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ profilePicture: data.secure_url })
@@ -88,6 +75,14 @@ const RegisterEnhanced = () => {
       console.error('Upload error:', err);
     }
     return null;
+  };
+
+  const handleProfilePictureSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      setProfilePictureFile(file);
+      setProfilePicturePreview(URL.createObjectURL(file));
+    }
   };
 
   const addSkill = () => {
@@ -158,7 +153,9 @@ const RegisterEnhanced = () => {
       const token = localStorage.getItem('token');
       
       // Upload profile picture if selected
-      await uploadProfilePicture(token);
+      if (profilePictureFile) {
+        await uploadProfilePicture(profilePictureFile, token);
+      }
       
       await fetch('https://kazi-linda.onrender.com/api/profile/me', {
         method: 'PUT',
@@ -235,7 +232,6 @@ const RegisterEnhanced = () => {
                   <div>
                     <h5 className="mb-3">Basic Information</h5>
                     
-                    {/* Profile Picture Upload */}
                     <div className="text-center mb-3">
                       <div className="position-relative d-inline-block">
                         {profilePicturePreview ? (
@@ -243,21 +239,10 @@ const RegisterEnhanced = () => {
                         ) : (
                           <FaUser size={100} className="text-muted" />
                         )}
-                        <Button
-                          variant="light"
-                          size="sm"
-                          className="position-absolute bottom-0 end-0 rounded-circle"
-                          onClick={() => document.getElementById('profilePicInput').click()}
-                        >
-                          <FaCamera size={12} />
-                        </Button>
-                        <input
-                          id="profilePicInput"
-                          type="file"
-                          accept="image/*"
-                          style={{ display: 'none' }}
-                          onChange={handleProfilePictureSelect}
-                        />
+                        <label className="position-absolute bottom-0 end-0 bg-warning rounded-circle p-2" style={{ cursor: 'pointer' }}>
+                          <FaCamera size={16} />
+                          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleProfilePictureSelect} />
+                        </label>
                       </div>
                       <small className="text-muted d-block mt-2">Add a profile picture (optional)</small>
                     </div>
@@ -307,17 +292,11 @@ const RegisterEnhanced = () => {
                       <Row>
                         {roleOptions.map(role => (
                           <Col md={6} key={role.value} className="mb-2">
-                            <div 
-                              className={`border rounded p-3 cursor-pointer ${formData.role === role.value ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary'}`}
-                              onClick={() => setFormData({ ...formData, role: role.value })}
-                              style={{ cursor: 'pointer' }}
-                            >
+                            <div className={`border rounded p-3 cursor-pointer ${formData.role === role.value ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary'}`}
+                                 onClick={() => setFormData({ ...formData, role: role.value })} style={{ cursor: 'pointer' }}>
                               <div className="d-flex align-items-center">
                                 <role.icon size={24} className={`text-${role.color} me-3`} />
-                                <div>
-                                  <div className="fw-bold">{role.label}</div>
-                                  <small className="text-muted">{role.desc}</small>
-                                </div>
+                                <div><div className="fw-bold">{role.label}</div><small className="text-muted">{role.desc}</small></div>
                                 {formData.role === role.value && <FaCheckCircle className="text-warning ms-auto" />}
                               </div>
                             </div>
@@ -331,14 +310,9 @@ const RegisterEnhanced = () => {
                 {step === 2 && (
                   <div>
                     <h5 className="mb-3">Personal Information</h5>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Bio / About You</Form.Label>
-                      <Form.Control as="textarea" rows={3} name="bio" value={formData.bio} onChange={handleChange} placeholder="Tell us about yourself..." />
-                    </Form.Group>
-                    <Row>
-                      <Col md={6}><Form.Group><Form.Label><FaGlobe className="me-2" /> Country of Origin</Form.Label><Form.Select name="countryOfOrigin" value={formData.countryOfOrigin} onChange={handleChange}><option>Kenya</option><option>Uganda</option><option>Tanzania</option></Form.Select></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label><FaMapMarkerAlt className="me-2" /> Current Country</Form.Label><Form.Control name="currentCountry" value={formData.currentCountry} onChange={handleChange} placeholder="e.g., UAE" /></Form.Group></Col>
-                    </Row>
+                    <Form.Group className="mb-3"><Form.Label>Bio / About You</Form.Label><Form.Control as="textarea" rows={3} name="bio" value={formData.bio} onChange={handleChange} placeholder="Tell us about yourself..." /></Form.Group>
+                    <Row><Col md={6}><Form.Group><Form.Label><FaGlobe className="me-2" /> Country of Origin</Form.Label><Form.Select name="countryOfOrigin" value={formData.countryOfOrigin} onChange={handleChange}><option>Kenya</option><option>Uganda</option><option>Tanzania</option></Form.Select></Form.Group></Col>
+                    <Col md={6}><Form.Group><Form.Label><FaMapMarkerAlt className="me-2" /> Current Country</Form.Label><Form.Control name="currentCountry" value={formData.currentCountry} onChange={handleChange} placeholder="e.g., UAE" /></Form.Group></Col></Row>
                     <Form.Group><Form.Label>Current City</Form.Label><Form.Control name="currentCity" value={formData.currentCity} onChange={handleChange} placeholder="e.g., Dubai" /></Form.Group>
                   </div>
                 )}
@@ -346,14 +320,7 @@ const RegisterEnhanced = () => {
                 {step === 3 && (
                   <div>
                     <h5 className="mb-3">Professional Information</h5>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Skills</Form.Label>
-                      <div className="d-flex mb-2">
-                        <Form.Control type="text" value={skillInput} onChange={e => setSkillInput(e.target.value)} placeholder="e.g., Carpentry" onKeyPress={e => e.key === 'Enter' && addSkill()} />
-                        <Button variant="outline-warning" onClick={addSkill} className="ms-2">Add</Button>
-                      </div>
-                      <div className="d-flex flex-wrap gap-2">{formData.skills.map((skill, idx) => (<Badge key={idx} bg="info" className="px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeSkill(skill)}>{skill} ✕</Badge>))}</div>
-                    </Form.Group>
+                    <Form.Group className="mb-3"><Form.Label>Skills</Form.Label><div className="d-flex mb-2"><Form.Control type="text" value={skillInput} onChange={e => setSkillInput(e.target.value)} placeholder="e.g., Carpentry" onKeyPress={e => e.key === 'Enter' && addSkill()} /><Button variant="outline-warning" onClick={addSkill} className="ms-2">Add</Button></div><div className="d-flex flex-wrap gap-2">{formData.skills.map((skill, idx) => (<Badge key={idx} bg="info" className="px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeSkill(skill)}>{skill} ✕</Badge>))}</div></Form.Group>
                     <Form.Group className="mb-3"><Form.Label>Experience</Form.Label><Form.Control as="textarea" rows={2} name="experience" value={formData.experience} onChange={handleChange} placeholder="e.g., 5 years in construction..." /></Form.Group>
                     <Form.Group><Form.Label><FaLanguage className="me-2" /> Languages</Form.Label><div className="d-flex gap-2 mb-2"><Form.Control type="text" value={languageInput} onChange={e => setLanguageInput(e.target.value)} placeholder="Language" style={{ flex: 2 }} /><Form.Select value={languageProficiency} onChange={e => setLanguageProficiency(e.target.value)} style={{ flex: 1 }}><option value="basic">Basic</option><option value="intermediate">Intermediate</option><option value="fluent">Fluent</option><option value="native">Native</option></Form.Select><Button variant="outline-warning" onClick={addLanguage}>Add</Button></div><div>{formData.languages.map((lang, idx) => (<Badge key={idx} bg="secondary" className="me-2 mb-2 px-3 py-2" style={{ cursor: 'pointer' }} onClick={() => removeLanguage(idx)}>{lang.name} - {lang.proficiency} ✕</Badge>))}</div></Form.Group>
                   </div>
