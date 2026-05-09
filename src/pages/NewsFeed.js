@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Container, Row, Col, Card, Image, Button, Spinner, Form, Modal, InputGroup, ProgressBar } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Row, Col, Card, Button, Spinner, Form, Modal, InputGroup } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
+import ClickableAvatar from '../components/Common/ClickableAvatar';
+import FollowButton from '../components/Common/FollowButton';
+import StoriesBar from '../components/Stories/StoriesBar';
 import { 
-  FaHeart, FaComment, FaShare, FaUserPlus, FaSmile, FaImage, 
-  FaVideo, FaEllipsisH, FaGlobe, FaUsers, FaCamera, 
-  FaPaperPlane, FaBookmark, FaTimes, FaFileVideo, FaUserFriends
+  FaHeart, FaComment, FaShare, FaSmile, FaImage, 
+  FaEllipsisH, FaGlobe, FaPaperPlane, FaThumbsUp, FaLaughBeam,
+  FaSadTear, FaAngry, FaRegSmile
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -16,30 +19,25 @@ const NewsFeed = () => {
   const [loading, setLoading] = useState(true);
   const [newPost, setNewPost] = useState('');
   const [posting, setPosting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedMedia, setSelectedMedia] = useState(null);
-  const [mediaPreview, setMediaPreview] = useState(null);
-  const [mediaType, setMediaType] = useState(null);
-  const [mediaSize, setMediaSize] = useState(0);
+  const [showReactionMenu, setShowReactionMenu] = useState(null);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [onlineFriends, setOnlineFriends] = useState([]);
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
+  const [followingStatus, setFollowingStatus] = useState({});
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareText, setShareText] = useState('');
-  const [showCoverModal, setShowCoverModal] = useState(false);
-  const [coverFile, setCoverFile] = useState(null);
-  const [coverPreview, setCoverPreview] = useState(null);
-  const [uploadingCover, setUploadingCover] = useState(false);
+  const [reactions, setReactions] = useState({});
 
-  const fileInputRef = useRef(null);
-  const videoInputRef = useRef(null);
-
-  const userName = user?.name || 'User';
-  const userFirstName = userName.split(' ')[0];
+  const reactionsList = [
+    { type: 'like', icon: FaThumbsUp, color: 'primary', label: 'Like' },
+    { type: 'love', icon: FaHeart, color: 'danger', label: 'Love' },
+    { type: 'haha', icon: FaLaughBeam, color: 'warning', label: 'Haha' },
+    { type: 'wow', icon: FaRegSmile, color: 'info', label: 'Wow' },
+    { type: 'sad', icon: FaSadTear, color: 'info', label: 'Sad' },
+    { type: 'angry', icon: FaAngry, color: 'danger', label: 'Angry' }
+  ];
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -63,6 +61,20 @@ const NewsFeed = () => {
       });
       const data = await res.json();
       setSuggestedUsers(Array.isArray(data) ? data.slice(0, 5) : []);
+      
+      const statuses = {};
+      for (const suggestUser of data) {
+        try {
+          const checkRes = await fetch(`https://kazi-linda.onrender.com/api/social/following/check/${suggestUser._id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const checkData = await checkRes.json();
+          statuses[suggestUser._id] = checkData.following;
+        } catch (err) {
+          statuses[suggestUser._id] = false;
+        }
+      }
+      setFollowingStatus(statuses);
     } catch (err) {
       console.error(err);
       setSuggestedUsers([]);
@@ -77,197 +89,55 @@ const NewsFeed = () => {
       if (res.ok) {
         const data = await res.json();
         setOnlineFriends(Array.isArray(data) ? data : []);
-      } else {
-        setOnlineFriends([]);
       }
     } catch (err) {
       console.error('Error fetching online friends:', err);
-      setOnlineFriends([]);
     }
   }, [token]);
-
-  const fetchFollowersCount = useCallback(async () => {
-    if (!user?._id) {
-      setFollowersCount(0);
-      return;
-    }
-    try {
-      const res = await fetch(`https://kazi-linda.onrender.com/api/social/followers/${user._id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFollowersCount(Array.isArray(data) ? data.length : 0);
-      }
-    } catch (err) {
-      console.error('Error fetching followers:', err);
-      setFollowersCount(0);
-    }
-  }, [user, token]);
-
-  const fetchFollowingCount = useCallback(async () => {
-    if (!user?._id) {
-      setFollowingCount(0);
-      return;
-    }
-    try {
-      const res = await fetch(`https://kazi-linda.onrender.com/api/social/following/${user._id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFollowingCount(Array.isArray(data) ? data.length : 0);
-      }
-    } catch (err) {
-      console.error('Error fetching following:', err);
-      setFollowingCount(0);
-    }
-  }, [user, token]);
 
   useEffect(() => {
     fetchFeed();
     fetchSuggestions();
     fetchOnlineFriends();
-    fetchFollowersCount();
-    fetchFollowingCount();
     const interval = setInterval(() => fetchFeed(), 30000);
     return () => clearInterval(interval);
-  }, [fetchFeed, fetchSuggestions, fetchOnlineFriends, fetchFollowersCount, fetchFollowingCount]);
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const uploadMediaToCloudinary = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'kazi_linda_uploads');
-    formData.append('resource_type', mediaType === 'video' ? 'video' : 'image');
-    
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/denczbmin/${mediaType === 'video' ? 'video' : 'image'}/upload`);
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          setUploadProgress((event.loaded / event.total) * 100);
-        }
-      };
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.response);
-          resolve(data.secure_url);
-        } else {
-          reject(new Error('Upload failed'));
-        }
-      };
-      xhr.onerror = () => reject(new Error('Upload failed'));
-      xhr.send(formData);
-    });
-  };
-
-  const validateVideo = (file) => {
-    const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please select MP4, MOV, AVI, MKV, or WEBM video file');
-      return false;
-    }
-    if (file.size > 500 * 1024 * 1024) {
-      toast.error('Video must be less than 500MB');
-      return false;
-    }
-    return true;
-  };
-
-  const validateImage = (file) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return false;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('Image must be less than 20MB');
-      return false;
-    }
-    return true;
-  };
-
-  const handleMediaSelect = (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const isValid = type === 'photo' ? validateImage(file) : validateVideo(file);
-    if (!isValid) return;
-    
-    setSelectedMedia(file);
-    setMediaType(type);
-    setMediaSize(file.size);
-    setMediaPreview(URL.createObjectURL(file));
-    setUploadProgress(0);
-    toast.success(`${type === 'photo' ? 'Image' : 'Video'} selected: ${formatFileSize(file.size)}`);
-  };
-
-  const clearSelectedMedia = () => {
-    setSelectedMedia(null);
-    setMediaPreview(null);
-    setMediaType(null);
-    setMediaSize(0);
-    setUploadProgress(0);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
-  };
+  }, [fetchFeed, fetchSuggestions, fetchOnlineFriends]);
 
   const handleCreatePost = async () => {
-    if (!newPost.trim() && !selectedMedia) {
-      toast.error('Please write something or add media');
+    if (!newPost.trim()) {
+      toast.error('Please write something');
       return;
     }
     
     setPosting(true);
-    setUploadProgress(0);
     try {
-      let mediaUrl = null;
-      if (selectedMedia) {
-        toast.loading(`Uploading ${mediaType === 'video' ? 'video' : 'photo'}...`, { id: 'upload' });
-        mediaUrl = await uploadMediaToCloudinary(selectedMedia);
-        toast.success(`${mediaType === 'video' ? 'Video' : 'Photo'} uploaded!`, { id: 'upload' });
-      }
-      
       const res = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          content: newPost,
-          media: mediaUrl ? [mediaUrl] : [],
-          mediaType: mediaType,
-          mediaSize: mediaSize
-        })
+        body: JSON.stringify({ content: newPost })
       });
       const post = await res.json();
       setPosts([post, ...posts]);
       setNewPost('');
-      clearSelectedMedia();
       toast.success('Post shared!');
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to post. Please try again.');
+      toast.error('Failed to post');
     } finally {
       setPosting(false);
-      setUploadProgress(0);
     }
   };
 
-  const handleLike = async (postId) => {
+  const handleReaction = async (postId, reactionType) => {
     try {
       await fetch(`https://kazi-linda.onrender.com/api/social/posts/${postId}/like`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      setReactions({ ...reactions, [postId]: reactionType });
+      setShowReactionMenu(null);
       fetchFeed();
     } catch (err) {
       console.error(err);
@@ -316,73 +186,6 @@ const NewsFeed = () => {
     }
   };
 
-  const handleCoverUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
-  };
-
-  const uploadCoverPhoto = async () => {
-    if (!coverFile) return;
-    setUploadingCover(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', coverFile);
-      formData.append('upload_preset', 'kazi_linda_uploads');
-      
-      const uploadRes = await fetch('https://api.cloudinary.com/v1_1/denczbmin/image/upload', {
-        method: 'POST',
-        body: formData
-      });
-      const cloudinaryData = await uploadRes.json();
-      
-      await fetch('https://kazi-linda.onrender.com/api/profile/cover-photo', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ coverUrl: cloudinaryData.secure_url })
-      });
-      
-      toast.success('Cover photo updated!');
-      setShowCoverModal(false);
-      setCoverFile(null);
-      setCoverPreview(null);
-    } catch (err) {
-      toast.error('Failed to upload cover');
-    } finally {
-      setUploadingCover(false);
-    }
-  };
-
-  const handleFollow = async (userId) => {
-    try {
-      await fetch('https://kazi-linda.onrender.com/api/social/follow', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ followingId: userId })
-      });
-      toast.success('Now following!');
-      fetchSuggestions();
-      fetchFollowingCount();
-    } catch (err) {
-      toast.error('Failed to follow');
-    }
-  };
-
   if (loading) {
     return (
       <Container className="text-center mt-5">
@@ -391,108 +194,251 @@ const NewsFeed = () => {
     );
   }
 
-  const photoPosts = posts.filter(p => p.mediaType === 'photo' && p.media?.length > 0).slice(0, 6);
-  const videoPosts = posts.filter(p => p.mediaType === 'video' && p.media?.length > 0).slice(0, 4);
-
   return (
-    <div className="newsfeed-container">
+    <div className="facebook-feed">
       <Container fluid className="px-4">
         <Row>
-          {/* Left Sidebar */}
+          {/* Left Sidebar - Online Friends */}
           <Col lg={3} className="d-none d-lg-block">
             <div className="left-sidebar">
-              <Card className="mb-3">
-                <Card.Body className="text-center">
-                  <div className="position-relative">
-                    {user?.profilePicture ? (
-                      <Image src={user.profilePicture} roundedCircle width="80" height="80" className="mb-2 border" style={{ objectFit: 'cover' }} />
-                    ) : (
-                      <div className="bg-secondary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style={{ width: '80px', height: '80px' }}>
-                        <FaUsers size={40} className="text-white" />
-                      </div>
-                    )}
-                    <Button variant="light" size="sm" className="position-absolute bottom-0 end-0 rounded-circle" onClick={() => setShowCoverModal(true)}>
-                      <FaCamera size={12} />
-                    </Button>
-                  </div>
-                  <h6 className="mt-2">{userName}</h6>
-                  <div className="d-flex justify-content-around mt-2">
-                    <div><strong>{followersCount}</strong><div><small>Followers</small></div></div>
-                    <div><strong>{followingCount}</strong><div><small>Following</small></div></div>
-                    <div><strong>{posts.length}</strong><div><small>Posts</small></div></div>
-                  </div>
-                  <Button as={Link} to="/profile/edit" variant="outline-warning" size="sm" className="mt-2 w-100">Edit Profile</Button>
-                </Card.Body>
-              </Card>
-              
-              {photoPosts.length > 0 && (
-                <Card className="mb-3">
-                  <Card.Header className="bg-white fw-bold"><FaImage className="me-2" /> Recent Photos</Card.Header>
-                  <Card.Body><div className="d-flex flex-wrap gap-1">{photoPosts.map(post => (<img key={post._id} src={post.media[0]} alt="Post" style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }} onClick={() => { const el = document.getElementById(`post-${post._id}`); if (el) el.scrollIntoView({ behavior: 'smooth' }); }} />))}</div></Card.Body>
-                </Card>
+              <div className="sidebar-header">
+                <strong>Online Friends</strong>
+              </div>
+              {onlineFriends.map(friend => (
+                <div key={friend._id} className="online-friend">
+                  <ClickableAvatar userId={friend._id} src={friend.profilePicture} size={36} showOnline={true} isOnline={true} />
+                  <Link to={`/profile/${friend._id}`} className="friend-name">{friend.name}</Link>
+                </div>
+              ))}
+              {onlineFriends.length === 0 && (
+                <div className="text-muted text-center py-3 small">No friends online</div>
               )}
-              
-              {videoPosts.length > 0 && (
-                <Card className="mb-3">
-                  <Card.Header className="bg-white fw-bold"><FaVideo className="me-2" /> Recent Videos</Card.Header>
-                  <Card.Body>{videoPosts.map(post => (<div key={post._id} className="mb-2"><video src={post.media[0]} style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }} onClick={() => { const el = document.getElementById(`post-${post._id}`); if (el) el.scrollIntoView({ behavior: 'smooth' }); }} /></div>))}</Card.Body>
-                </Card>
-              )}
-              
-              <Card>
-                <Card.Header className="bg-white fw-bold"><FaUserFriends className="me-2" /> Online Friends ({onlineFriends.length})</Card.Header>
-                <Card.Body className="p-0">
-                  {onlineFriends.length === 0 ? (<div className="text-center p-3 text-muted small">No friends online</div>) : (
-                    onlineFriends.map(friend => (<div key={friend._id} className="d-flex align-items-center p-2 border-bottom gap-2"><div className="position-relative">{friend.profilePicture ? (<Image src={friend.profilePicture} roundedCircle width="32" height="32" style={{ objectFit: 'cover' }} />) : (<div className="bg-secondary rounded-circle" style={{ width: '32px', height: '32px' }} />)}<span className="online-dot"></span></div><Link to={`/profile/${friend._id}`} className="text-decoration-none text-dark small">{friend.name}</Link></div>))
-                  )}
-                </Card.Body>
-              </Card>
             </div>
           </Col>
 
           {/* Main Feed */}
           <Col lg={6}>
-            <Card className="mb-3">
+            <StoriesBar />
+            
+            <Card className="create-post-card mb-3">
               <Card.Body>
-                <div className="d-flex align-items-start gap-2">
-                  {user?.profilePicture ? (<Image src={user.profilePicture} roundedCircle width="40" height="40" style={{ objectFit: 'cover' }} />) : (<div className="bg-secondary rounded-circle" style={{ width: '40px', height: '40px' }} />)}
-                  <Form.Control as="textarea" rows={2} placeholder={`What's on your mind, ${userFirstName}?`} value={newPost} onChange={(e) => setNewPost(e.target.value)} className="bg-light border-0" />
+                <div className="d-flex align-items-center gap-2 mb-3">
+                  <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+                  <Form.Control
+                    as="textarea"
+                    rows={1}
+                    placeholder={`What's on your mind, ${user?.name?.split(' ')[0]}?`}
+                    value={newPost}
+                    onChange={(e) => setNewPost(e.target.value)}
+                    className="bg-light border-0 rounded-pill"
+                    style={{ resize: 'none' }}
+                  />
                 </div>
-                
-                {mediaPreview && (<div className="mt-3 position-relative">{mediaType === 'photo' ? (<Image src={mediaPreview} fluid rounded className="border" />) : (<video src={mediaPreview} controls className="w-100 rounded border" style={{ maxHeight: '400px' }} />)}<div className="mt-2 d-flex justify-content-between align-items-center"><small className="text-muted"><FaFileVideo className="me-1" />{formatFileSize(mediaSize)}</small><Button variant="danger" size="sm" className="rounded-circle" onClick={clearSelectedMedia}><FaTimes /></Button></div>{uploadProgress > 0 && uploadProgress < 100 && (<ProgressBar now={uploadProgress} label={`${Math.round(uploadProgress)}%`} className="mt-2" variant="warning" />)}</div>)}
-                
-                <div className="d-flex justify-content-around mt-3 pt-2 border-top">
-                  <Button variant="link" className="text-decoration-none text-success" onClick={() => fileInputRef.current?.click()}><FaImage className="me-2" /> Photo</Button>
-                  <Button variant="link" className="text-decoration-none text-primary" onClick={() => videoInputRef.current?.click()}><FaVideo className="me-2" /> Video</Button>
-                  <Button variant="link" className="text-decoration-none text-warning"><FaSmile className="me-2" /> Feeling</Button>
-                  <Button variant="warning" onClick={handleCreatePost} disabled={posting} size="sm">{posting ? 'Posting...' : 'Post'}</Button>
+                <div className="d-flex justify-content-around pt-2 border-top">
+                  <Button variant="link" className="text-decoration-none text-success">
+                    <FaImage className="me-1" /> Photo/Video
+                  </Button>
+                  <Button variant="link" className="text-decoration-none text-primary">
+                    <FaSmile className="me-1" /> Feeling/Activity
+                  </Button>
+                  <Button variant="warning" onClick={handleCreatePost} disabled={posting} size="sm">
+                    {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
+                  </Button>
                 </div>
-                
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleMediaSelect(e, 'photo')} />
-                <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm" style={{ display: 'none' }} onChange={(e) => handleMediaSelect(e, 'video')} />
               </Card.Body>
             </Card>
 
-            {posts.length === 0 ? (<Card className="text-center py-5"><Card.Body><FaUsers size={50} className="text-muted mb-3" /><h6>No posts yet</h6><p className="text-muted">Follow people to see their updates!</p></Card.Body></Card>) : (
-              posts.map(post => (<Card key={post._id} className="mb-3" id={`post-${post._id}`}><Card.Body><div className="d-flex justify-content-between align-items-start mb-3"><div className="d-flex gap-2"><Link to={`/profile/${post.author?._id}`}>{post.author?.profilePicture ? (<Image src={post.author.profilePicture} roundedCircle width="40" height="40" style={{ objectFit: 'cover' }} />) : (<div className="bg-secondary rounded-circle" style={{ width: '40px', height: '40px' }} />)}</Link><div><Link to={`/profile/${post.author?._id}`} className="text-decoration-none text-dark fw-bold">{post.author?.name || 'User'}</Link><div className="text-muted small">{moment(post.createdAt).fromNow()} · <FaGlobe size={10} /></div></div></div><Button variant="link" className="text-muted p-0"><FaEllipsisH /></Button></div><p className="mb-3">{post.content}</p>{post.media && post.media.length > 0 && (<div className="mb-3">{post.mediaType === 'video' ? (<video src={post.media[0]} controls className="w-100 rounded" style={{ maxHeight: '500px' }} preload="metadata" />) : (<Image src={post.media[0]} fluid rounded />)}</div>)}<div className="d-flex justify-content-between border-top pt-2"><div className="d-flex gap-3"><Button variant="link" onClick={() => handleLike(post._id)} className="text-decoration-none p-0"><FaHeart className={`me-1 ${post.likes?.includes(user?._id) ? 'text-danger' : 'text-muted'}`} /> {post.likes?.length || 0}</Button><Button variant="link" className="text-decoration-none p-0 text-muted" onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}><FaComment className="me-1" /> {post.comments?.length || 0}</Button><Button variant="link" className="text-decoration-none p-0 text-muted" onClick={() => { setSelectedPost(post); setShowShareModal(true); }}><FaShare className="me-1" /> {post.shares?.length || 0}</Button><Button variant="link" className="text-decoration-none p-0 text-muted"><FaBookmark className="me-1" /> Save</Button></div></div>{post.comments?.length > 0 && (<div className="mt-3 pt-2 border-top">{post.comments.slice(0, 2).map(comment => (<div key={comment._id} className="mb-2 d-flex gap-2"><strong>{comment.user?.name}</strong><small className="text-muted">{comment.text}</small></div>))}{post.comments.length > 2 && (<Button variant="link" size="sm" onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}>View all {post.comments.length} comments</Button>)}</div>)}</Card.Body></Card>))
-            )}
+            {posts.map(post => (
+              <Card key={post._id} className="post-card mb-3">
+                <Card.Body>
+                  <div className="d-flex justify-content-between mb-3">
+                    <div className="d-flex gap-2">
+                      <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} size={40} />
+                      <div>
+                        <Link to={`/profile/${post.author?._id}`} className="text-decoration-none text-dark fw-bold">
+                          {post.author?.name}
+                        </Link>
+                        <div className="text-muted small">
+                          {moment(post.createdAt).fromNow()} · <FaGlobe size={10} className="text-muted" />
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="link" className="text-muted p-0"><FaEllipsisH /></Button>
+                  </div>
+                  
+                  <p className="mb-3">{post.content}</p>
+                  
+                  {post.media && post.media.length > 0 && (
+                    <div className="post-media mb-3">
+                      {post.mediaType === 'video' ? (
+                        <video src={post.media[0]} controls className="w-100 rounded" />
+                      ) : (
+                        <img src={post.media[0]} alt="Post" className="w-100 rounded" />
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="d-flex justify-content-between border-bottom pb-2 mb-2">
+                    <div className="d-flex align-items-center gap-1">
+                      <span className="reaction-summary">
+                        {post.likes?.length > 0 && (
+                          <>
+                            <FaThumbsUp className="text-primary" size={14} />
+                            <span className="ms-1 small text-muted">{post.likes?.length}</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="small text-muted">{post.comments?.length || 0} comments</span>
+                      <span className="small text-muted ms-2">{post.shares?.length || 0} shares</span>
+                    </div>
+                  </div>
+                  
+                  <div className="d-flex justify-content-around">
+                    <div className="position-relative">
+                      <Button 
+                        variant="link" 
+                        className="text-decoration-none text-muted action-btn"
+                        onMouseEnter={() => setShowReactionMenu(post._id)}
+                        onMouseLeave={() => setTimeout(() => setShowReactionMenu(null), 300)}
+                      >
+                        <FaThumbsUp className="me-1" /> Like
+                      </Button>
+                      {showReactionMenu === post._id && (
+                        <div className="reaction-menu" onMouseEnter={() => setShowReactionMenu(post._id)} onMouseLeave={() => setShowReactionMenu(null)}>
+                          {reactionsList.map(react => (
+                            <button key={react.type} className="reaction-option" onClick={() => handleReaction(post._id, react.type)}>
+                              <react.icon className={`text-${react.color}`} size={28} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Button variant="link" className="text-decoration-none text-muted action-btn" onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}>
+                      <FaComment className="me-1" /> Comment
+                    </Button>
+                    <Button variant="link" className="text-decoration-none text-muted action-btn" onClick={() => { setSelectedPost(post); setShowShareModal(true); }}>
+                      <FaShare className="me-1" /> Share
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            ))}
           </Col>
 
           {/* Right Sidebar */}
           <Col lg={3} className="d-none d-lg-block">
-            <Card><Card.Header className="bg-white fw-bold"><FaUserPlus className="me-2" /> Suggested for you</Card.Header><Card.Body className="p-0">{suggestedUsers.length === 0 ? (<div className="text-center p-3 text-muted small">No suggestions</div>) : (suggestedUsers.map(suggestion => (<div key={suggestion._id} className="d-flex align-items-center p-2 border-bottom gap-2"><Link to={`/profile/${suggestion._id}`}>{suggestion.profilePicture ? (<Image src={suggestion.profilePicture} roundedCircle width="40" height="40" style={{ objectFit: 'cover' }} />) : (<div className="bg-secondary rounded-circle" style={{ width: '40px', height: '40px' }} />)}</Link><div className="flex-grow-1"><Link to={`/profile/${suggestion._id}`} className="text-decoration-none text-dark fw-bold small">{suggestion.name}</Link><div className="text-muted small">{suggestion.role}</div></div><Button size="sm" variant="outline-primary" onClick={() => handleFollow(suggestion._id)}><FaUserPlus /> Follow</Button></div>)))}</Card.Body></Card>
+            <div className="right-sidebar">
+              <div className="sidebar-header">
+                <strong>Suggested for you</strong>
+              </div>
+              {suggestedUsers.map(suggestion => (
+                <div key={suggestion._id} className="suggested-user">
+                  <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} size={40} />
+                  <div className="user-info">
+                    <Link to={`/profile/${suggestion._id}`} className="user-name">{suggestion.name}</Link>
+                    <div className="user-meta">{suggestion.role}</div>
+                  </div>
+                  <FollowButton 
+                    userId={suggestion._id} 
+                    isFollowingProp={followingStatus[suggestion._id] || false}
+                    onFollowChange={(newStatus) => {
+                      setFollowingStatus({ ...followingStatus, [suggestion._id]: newStatus });
+                      fetchSuggestions();
+                    }}
+                    token={token}
+                  />
+                </div>
+              ))}
+              {suggestedUsers.length === 0 && (
+                <div className="text-muted text-center py-3 small">No suggestions</div>
+              )}
+              
+              <div className="sidebar-footer mt-3 text-center">
+                <small className="text-muted">© 2024 KAZI LINDA</small>
+              </div>
+            </div>
           </Col>
         </Row>
       </Container>
 
-      {/* Modals */}
-      <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)}><Modal.Header closeButton><Modal.Title>Comments</Modal.Title></Modal.Header><Modal.Body>{selectedPost?.comments?.map(comment => (<div key={comment._id} className="mb-3"><strong>{comment.user?.name}</strong><p className="mb-0">{comment.text}</p><small className="text-muted">{moment(comment.createdAt).fromNow()}</small><hr /></div>))}<InputGroup><Form.Control placeholder="Write a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} /><Button variant="warning" onClick={handleAddComment}><FaPaperPlane /></Button></InputGroup></Modal.Body></Modal>
+      {/* Comment Modal */}
+      <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Comments</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPost?.comments?.map(comment => (
+            <div key={comment._id} className="mb-3">
+              <div className="d-flex gap-2">
+                <ClickableAvatar userId={comment.user?._id} src={comment.user?.profilePicture} size={32} />
+                <div className="flex-grow-1">
+                  <strong>{comment.user?.name}</strong>
+                  <p className="mb-0">{comment.text}</p>
+                  <small className="text-muted">{moment(comment.createdAt).fromNow()}</small>
+                </div>
+              </div>
+              <hr />
+            </div>
+          ))}
+          <InputGroup>
+            <Form.Control
+              placeholder="Write a comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+            />
+            <Button variant="warning" onClick={handleAddComment}>
+              <FaPaperPlane />
+            </Button>
+          </InputGroup>
+        </Modal.Body>
+      </Modal>
 
-      <Modal show={showShareModal} onHide={() => setShowShareModal(false)}><Modal.Header closeButton><Modal.Title>Share this post</Modal.Title></Modal.Header><Modal.Body><Form.Control as="textarea" rows={3} placeholder="Say something about this post..." value={shareText} onChange={(e) => setShareText(e.target.value)} /></Modal.Body><Modal.Footer><Button variant="secondary" onClick={() => setShowShareModal(false)}>Cancel</Button><Button variant="warning" onClick={handleShare}>Share</Button></Modal.Footer></Modal>
+      {/* Share Modal */}
+      <Modal show={showShareModal} onHide={() => setShowShareModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Share this post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            placeholder="Say something about this post..."
+            value={shareText}
+            onChange={(e) => setShareText(e.target.value)}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowShareModal(false)}>Cancel</Button>
+          <Button variant="warning" onClick={handleShare}>Share Now</Button>
+        </Modal.Footer>
+      </Modal>
 
-      <Modal show={showCoverModal} onHide={() => setShowCoverModal(false)}><Modal.Header closeButton><Modal.Title>Update Cover Photo</Modal.Title></Modal.Header><Modal.Body className="text-center">{coverPreview ? <Image src={coverPreview} fluid rounded className="mb-3" alt="Cover preview" /> : (<div className="border rounded p-5 mb-3"><FaCamera size={40} className="text-muted" /><p className="mt-2">Select a cover photo</p></div>)}<input type="file" accept="image/*" onChange={handleCoverUpload} className="form-control mb-3" /></Modal.Body><Modal.Footer><Button variant="secondary" onClick={() => setShowCoverModal(false)}>Cancel</Button><Button variant="warning" onClick={uploadCoverPhoto} disabled={uploadingCover}>{uploadingCover ? 'Uploading...' : 'Save Cover'}</Button></Modal.Footer></Modal>
-
-      <style>{`.newsfeed-container { background: #f0f2f5; min-height: 100vh; padding: 20px 0; }.online-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: #31a24c; border-radius: 50%; border: 2px solid white; }.left-sidebar { position: sticky; top: 80px; }video { background: black; }`}</style>
+      <style>{`
+        .facebook-feed { background: #f0f2f5; min-height: 100vh; padding: 20px 0; }
+        .left-sidebar, .right-sidebar { position: sticky; top: 80px; background: white; border-radius: 10px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .sidebar-header { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #e4e6eb; }
+        .online-friend { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+        .friend-name { color: #050505; text-decoration: none; font-size: 14px; font-weight: 500; }
+        .friend-name:hover { color: #f39c12; text-decoration: underline; }
+        .create-post-card { border: none; border-radius: 10px; }
+        .post-card { border: none; border-radius: 10px; transition: box-shadow 0.2s; }
+        .post-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .action-btn { font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; width: 100%; }
+        .action-btn:hover { background: #f0f2f5; }
+        .reaction-menu { position: absolute; bottom: 100%; left: 0; background: white; border-radius: 40px; padding: 8px 12px; display: flex; gap: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); z-index: 1000; }
+        .reaction-option { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; transition: transform 0.1s; }
+        .reaction-option:hover { transform: scale(1.2); background: #f0f2f5; }
+        .suggested-user { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #e4e6eb; }
+        .suggested-user:last-child { border-bottom: none; }
+        .user-info { flex: 1; }
+        .user-name { color: #050505; text-decoration: none; font-size: 14px; font-weight: 600; }
+        .user-name:hover { color: #f39c12; text-decoration: underline; }
+        .user-meta { font-size: 12px; color: #65676b; }
+        .post-media { max-height: 500px; overflow: hidden; display: flex; justify-content: center; background: #1a1a1a; border-radius: 8px; }
+        .post-media img, .post-media video { max-height: 500px; object-fit: contain; }
+      `}</style>
     </div>
   );
 };

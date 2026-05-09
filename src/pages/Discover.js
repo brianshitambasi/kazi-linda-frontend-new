@@ -143,3 +143,4 @@ const Discover = () => {
 };
 
 export default Discover;
+// Replace user avatars

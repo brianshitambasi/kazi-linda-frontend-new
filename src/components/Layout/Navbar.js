@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Navbar as BsNavbar, Nav, Container, Button, Dropdown, Badge, Image } from 'react-bootstrap';
+import { Navbar as BsNavbar, Nav, Container, Button, Dropdown, Badge } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { messageAPI } from '../../services/api';
+import ClickableAvatar from '../Common/ClickableAvatar';
 import { 
-  FaHome, FaBriefcase, FaClipboardList, FaShieldAlt, FaBan, 
+  FaHome, FaBriefcase, 
   FaSignOutAlt, FaUser, FaSignInAlt, FaUserPlus, FaTachometerAlt,
   FaBars, FaTimes, FaInfoCircle, FaEnvelope, FaNewspaper
 } from 'react-icons/fa';
@@ -51,9 +52,7 @@ const Navbar = () => {
   };
 
   const isActive = (path) => location.pathname === path;
-
   const userName = user?.name?.split(' ')[0] || 'User';
-  const userProfilePic = user?.profilePicture;
 
   return (
     <BsNavbar bg="dark" variant="dark" expand="lg" expanded={expanded} className="shadow-sm sticky-top">
@@ -95,11 +94,7 @@ const Navbar = () => {
             {user ? (
               <Dropdown align="end">
                 <Dropdown.Toggle variant="outline-warning" size="sm" className="d-flex align-items-center gap-2">
-                  {userProfilePic ? (
-                    <Image src={userProfilePic} roundedCircle width="28" height="28" />
-                  ) : (
-                    <FaUser />
-                  )}
+                  <ClickableAvatar userId={user._id} src={user.profilePicture} size={28} showOnline={true} isOnline={user.isOnline} />
                   <span>{userName}</span>
                 </Dropdown.Toggle>
                 <Dropdown.Menu>

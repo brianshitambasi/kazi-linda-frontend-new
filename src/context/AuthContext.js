@@ -21,20 +21,10 @@ export const AuthProvider = ({ children }) => {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           setToken(storedToken);
-          
-          // Fetch fresh user data to ensure profile picture is up to date
-          try {
-            const res = await authAPI.getMe();
-            if (res.data) {
-              const updatedUser = { ...parsedUser, ...res.data };
-              setUser(updatedUser);
-              localStorage.setItem('user', JSON.stringify(updatedUser));
-            }
-          } catch (err) {
-            console.error('Error fetching fresh user data:', err);
-          }
         } catch (e) {
           console.error('Failed to parse user:', e);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
         }
       }
       setLoading(false);
@@ -48,15 +38,12 @@ export const AuthProvider = ({ children }) => {
       const res = await authAPI.login(credentials);
       const userData = res.data;
       
-      // Fetch full profile
-      const profileRes = await authAPI.getMe();
-      const fullUserData = { ...userData, ...profileRes.data };
+      setUser(userData);
+      setToken(userData.token);
+      localStorage.setItem('token', userData.token);
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      setUser(fullUserData);
-      setToken(fullUserData.token);
-      localStorage.setItem('token', fullUserData.token);
-      localStorage.setItem('user', JSON.stringify(fullUserData));
-      return fullUserData;
+      return userData;
     } catch (err) {
       console.error('Login error:', err);
       throw err;
