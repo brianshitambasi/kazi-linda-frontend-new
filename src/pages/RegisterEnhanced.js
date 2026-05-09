@@ -9,6 +9,8 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
+const KL_BRAND = '#f39c12';
+
 const RegisterEnhanced = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -152,7 +154,6 @@ const RegisterEnhanced = () => {
       await register(registerData);
       const token = localStorage.getItem('token');
       
-      // Upload profile picture if selected
       if (profilePictureFile) {
         await uploadProfilePicture(profilePictureFile, token);
       }
@@ -218,8 +219,8 @@ const RegisterEnhanced = () => {
           <Card className="shadow-lg border-0">
             <Card.Body className="p-4 p-lg-5">
               <div className="text-center mb-4">
-                <div className="bg-warning rounded-circle d-inline-flex p-3 mb-3">
-                  <FaUserPlus size={32} className="text-dark" />
+                <div style={{ background: KL_BRAND + '20', borderRadius: '50%', width: 64, height: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <FaUserPlus size={32} color={KL_BRAND} />
                 </div>
                 <h2 className="fw-bold">Create Your Account</h2>
                 <p className="text-muted">Join KAZI LINDA today - It's free!</p>
@@ -338,11 +339,11 @@ const RegisterEnhanced = () => {
                 
                 <div className="d-flex justify-content-between mt-4">
                   {step > 1 && <Button variant="outline-secondary" onClick={handleBack}><FaArrowLeft className="me-2" /> Back</Button>}
-                  {step < 4 ? <Button variant="warning" onClick={handleNext} className={step === 1 ? 'w-100' : ''}>Continue <FaArrowRight className="ms-2" /></Button> : <Button variant="warning" type="submit" disabled={loading} className="w-100">{loading ? 'Creating Account...' : 'Create Account'}</Button>}
+                  {step < 4 ? <Button style={{ background: KL_BRAND, border: 'none' }} onClick={handleNext} className={step === 1 ? 'w-100' : ''}>Continue <FaArrowRight className="ms-2" /></Button> : <Button style={{ background: KL_BRAND, border: 'none' }} type="submit" disabled={loading} className="w-100">{loading ? 'Creating Account...' : 'Create Account'}</Button>}
                 </div>
               </Form>
               
-              <div className="text-center mt-4"><Link to="/login" className="text-decoration-none">Already have an account? Login</Link></div>
+              <div className="text-center mt-4"><Link to="/login" className="text-decoration-none" style={{ color: KL_BRAND }}>Already have an account? Login</Link></div>
             </Card.Body>
           </Card>
         </Col>

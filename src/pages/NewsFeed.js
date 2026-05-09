@@ -1,17 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Button, Spinner, Form, Modal, InputGroup } from 'react-bootstrap';
+import { Spinner, Modal, Form, InputGroup, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 import FollowButton from '../components/Common/FollowButton';
 import StoriesBar from '../components/Stories/StoriesBar';
-import { 
-  FaHeart, FaComment, FaShare, FaSmile, FaImage, 
+import {
+  FaHeart, FaComment, FaShare, FaSmile, FaImage,
   FaEllipsisH, FaGlobe, FaPaperPlane, FaThumbsUp, FaLaughBeam,
-  FaSadTear, FaAngry, FaRegSmile
+  FaSadTear, FaAngry, FaRegSmile, FaVideo, FaHome, FaStore,
+  FaUsers, FaPlayCircle, FaBell, FaFacebookMessenger, FaSearch,
+  FaChevronDown, FaUserFriends, FaBookmark, FaCalendarAlt, FaClock
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import moment from 'moment';
+
+const KL_BRAND = '#f39c12';
+const KL_BRAND_LIGHT = '#fef9e7';
+
+const reactionsList = [
+  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: '👍' },
+  { type: 'love',  icon: FaHeart,     color: '#f33e58', label: 'Love',  emoji: '❤️' },
+  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: '😂' },
+  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: '😮' },
+  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: '😢' },
+  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: '😡' },
+];
 
 const NewsFeed = () => {
   const { user, token } = useAuth();
@@ -20,6 +34,7 @@ const NewsFeed = () => {
   const [newPost, setNewPost] = useState('');
   const [posting, setPosting] = useState(false);
   const [showReactionMenu, setShowReactionMenu] = useState(null);
+  const [reactionHover, setReactionHover] = useState(null);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [onlineFriends, setOnlineFriends] = useState([]);
   const [followingStatus, setFollowingStatus] = useState({});
@@ -29,20 +44,13 @@ const NewsFeed = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareText, setShareText] = useState('');
   const [reactions, setReactions] = useState({});
-
-  const reactionsList = [
-    { type: 'like', icon: FaThumbsUp, color: 'primary', label: 'Like' },
-    { type: 'love', icon: FaHeart, color: 'danger', label: 'Love' },
-    { type: 'haha', icon: FaLaughBeam, color: 'warning', label: 'Haha' },
-    { type: 'wow', icon: FaRegSmile, color: 'info', label: 'Wow' },
-    { type: 'sad', icon: FaSadTear, color: 'info', label: 'Sad' },
-    { type: 'angry', icon: FaAngry, color: 'danger', label: 'Angry' }
-  ];
+  const [activeNav, setActiveNav] = useState('home');
+  const reactionTimers = React.useRef({});
 
   const fetchFeed = useCallback(async () => {
     try {
       const res = await fetch('https://kazi-linda.onrender.com/api/social/feed', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setPosts(Array.isArray(data) ? data : []);
@@ -57,21 +65,21 @@ const NewsFeed = () => {
   const fetchSuggestions = useCallback(async () => {
     try {
       const res = await fetch('https://kazi-linda.onrender.com/api/social/suggestions', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setSuggestedUsers(Array.isArray(data) ? data.slice(0, 5) : []);
-      
+      setSuggestedUsers(Array.isArray(data) ? data.slice(0, 6) : []);
       const statuses = {};
-      for (const suggestUser of data) {
+      for (const u of data) {
         try {
-          const checkRes = await fetch(`https://kazi-linda.onrender.com/api/social/following/check/${suggestUser._id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const checkData = await checkRes.json();
-          statuses[suggestUser._id] = checkData.following;
-        } catch (err) {
-          statuses[suggestUser._id] = false;
+          const r = await fetch(
+            `https://kazi-linda.onrender.com/api/social/following/check/${u._id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const d = await r.json();
+          statuses[u._id] = d.following;
+        } catch {
+          statuses[u._id] = false;
         }
       }
       setFollowingStatus(statuses);
@@ -84,7 +92,7 @@ const NewsFeed = () => {
   const fetchOnlineFriends = useCallback(async () => {
     try {
       const res = await fetch('https://kazi-linda.onrender.com/api/social/online-friends', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
@@ -99,31 +107,24 @@ const NewsFeed = () => {
     fetchFeed();
     fetchSuggestions();
     fetchOnlineFriends();
-    const interval = setInterval(() => fetchFeed(), 30000);
+    const interval = setInterval(fetchFeed, 30000);
     return () => clearInterval(interval);
   }, [fetchFeed, fetchSuggestions, fetchOnlineFriends]);
 
   const handleCreatePost = async () => {
-    if (!newPost.trim()) {
-      toast.error('Please write something');
-      return;
-    }
-    
+    if (!newPost.trim()) { toast.error('Please write something'); return; }
     setPosting(true);
     try {
       const res = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content: newPost })
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newPost }),
       });
       const post = await res.json();
       setPosts([post, ...posts]);
       setNewPost('');
       toast.success('Post shared!');
-    } catch (err) {
+    } catch {
       toast.error('Failed to post');
     } finally {
       setPosting(false);
@@ -134,7 +135,7 @@ const NewsFeed = () => {
     try {
       await fetch(`https://kazi-linda.onrender.com/api/social/posts/${postId}/like`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setReactions({ ...reactions, [postId]: reactionType });
       setShowReactionMenu(null);
@@ -147,19 +148,19 @@ const NewsFeed = () => {
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
     try {
-      await fetch(`https://kazi-linda.onrender.com/api/social/posts/${selectedPost._id}/comment`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ text: commentText })
-      });
+      await fetch(
+        `https://kazi-linda.onrender.com/api/social/posts/${selectedPost._id}/comment`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: commentText }),
+        }
+      );
       setCommentText('');
       setShowCommentModal(false);
       fetchFeed();
       toast.success('Comment added!');
-    } catch (err) {
+    } catch {
       toast.error('Failed to add comment');
     }
   };
@@ -168,279 +169,693 @@ const NewsFeed = () => {
     try {
       await fetch('https://kazi-linda.onrender.com/api/social/posts', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           content: shareText || `Shared a post from ${selectedPost?.author?.name}`,
-          originalPost: selectedPost?._id
-        })
+          originalPost: selectedPost?._id,
+        }),
       });
       setShowShareModal(false);
       setShareText('');
       fetchFeed();
       toast.success('Post shared!');
-    } catch (err) {
+    } catch {
       toast.error('Failed to share');
     }
   };
 
+  const openReaction = (postId) => {
+    clearTimeout(reactionTimers.current[postId]);
+    setShowReactionMenu(postId);
+  };
+  const closeReaction = (postId) => {
+    reactionTimers.current[postId] = setTimeout(() => setShowReactionMenu(null), 300);
+  };
+
+  const getReaction = (postId) => reactions[postId] || null;
+  const activeReaction = (postId) => reactionsList.find(r => r.type === getReaction(postId));
+
   if (loading) {
     return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" variant="warning" />
-      </Container>
+      <div style={styles.loadingWrap}>
+        <div style={styles.loadingLogo}>KL</div>
+        <Spinner animation="border" style={{ color: KL_BRAND, marginTop: 16 }} />
+      </div>
     );
   }
 
+  const navTabs = [
+    { id: 'home',        icon: FaHome,        label: 'Home' },
+    { id: 'watch',       icon: FaPlayCircle,  label: 'Watch' },
+    { id: 'marketplace', icon: FaStore,       label: 'Market' },
+    { id: 'groups',      icon: FaUsers,       label: 'Groups' },
+    { id: 'gaming',      icon: FaCalendarAlt, label: 'Events' },
+  ];
+
+  const leftLinks = [
+    { icon: FaUserFriends, label: 'Friends',   color: '#1877f2' },
+    { icon: FaStore,       label: 'Marketplace', color: '#e41e3f' },
+    { icon: FaPlayCircle,  label: 'Watch',     color: '#7c3aed' },
+    { icon: FaBookmark,    label: 'Saved',     color: '#7c3aed' },
+    { icon: FaCalendarAlt, label: 'Events',    color: KL_BRAND },
+    { icon: FaClock,       label: 'Memories',  color: KL_BRAND },
+  ];
+
   return (
-    <div className="facebook-feed">
-      <Container fluid className="px-4">
-        <Row>
-          {/* Left Sidebar - Online Friends */}
-          <Col lg={3} className="d-none d-lg-block">
-            <div className="left-sidebar">
-              <div className="sidebar-header">
-                <strong>Online Friends</strong>
-              </div>
-              {onlineFriends.map(friend => (
-                <div key={friend._id} className="online-friend">
-                  <ClickableAvatar userId={friend._id} src={friend.profilePicture} size={36} showOnline={true} isOnline={true} />
-                  <Link to={`/profile/${friend._id}`} className="friend-name">{friend.name}</Link>
-                </div>
-              ))}
-              {onlineFriends.length === 0 && (
-                <div className="text-muted text-center py-3 small">No friends online</div>
-              )}
+    <div style={styles.page}>
+      <nav style={styles.nav}>
+        <div style={styles.navLeft}>
+          <Link to="/" style={styles.logoBox}>
+            <span style={styles.logoText}>KL</span>
+          </Link>
+          <div style={styles.searchBox}>
+            <FaSearch style={styles.searchIcon} />
+            <input style={styles.searchInput} placeholder="Search KaziLinda" />
+          </div>
+        </div>
+
+        <div style={styles.navCenter}>
+          {navTabs.map(tab => (
+            <button
+              key={tab.id}
+              style={{
+                ...styles.navTab,
+                ...(activeNav === tab.id ? styles.navTabActive : {}),
+              }}
+              onClick={() => setActiveNav(tab.id)}
+              title={tab.label}
+            >
+              <tab.icon size={24} style={{ color: activeNav === tab.id ? KL_BRAND : '#65676b' }} />
+              {activeNav === tab.id && <div style={styles.navTabLine} />}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.navRight}>
+          <button style={styles.navIconBtn} title="Menu">
+            <div style={styles.navIconInner}>
+              <FaEllipsisH size={18} color="#050505" />
             </div>
-          </Col>
+          </button>
+          <button style={styles.navIconBtn} title="Messenger">
+            <div style={styles.navIconInner}>
+              <FaFacebookMessenger size={18} color="#050505" />
+            </div>
+            <span style={styles.badge}>3</span>
+          </button>
+          <button style={styles.navIconBtn} title="Notifications">
+            <div style={styles.navIconInner}>
+              <FaBell size={18} color="#050505" />
+            </div>
+            <span style={styles.badge}>9</span>
+          </button>
+          <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+        </div>
+      </nav>
 
-          {/* Main Feed */}
-          <Col lg={6}>
-            <StoriesBar />
-            
-            <Card className="create-post-card mb-3">
-              <Card.Body>
-                <div className="d-flex align-items-center gap-2 mb-3">
-                  <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
-                  <Form.Control
-                    as="textarea"
-                    rows={1}
-                    placeholder={`What's on your mind, ${user?.name?.split(' ')[0]}?`}
-                    value={newPost}
-                    onChange={(e) => setNewPost(e.target.value)}
-                    className="bg-light border-0 rounded-pill"
-                    style={{ resize: 'none' }}
-                  />
-                </div>
-                <div className="d-flex justify-content-around pt-2 border-top">
-                  <Button variant="link" className="text-decoration-none text-success">
-                    <FaImage className="me-1" /> Photo/Video
-                  </Button>
-                  <Button variant="link" className="text-decoration-none text-primary">
-                    <FaSmile className="me-1" /> Feeling/Activity
-                  </Button>
-                  <Button variant="warning" onClick={handleCreatePost} disabled={posting} size="sm">
-                    {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
+      <div style={styles.body}>
+        <aside style={styles.leftSidebar}>
+          <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}>
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={36} />
+            <span style={styles.sidebarLinkText}>{user?.name}</span>
+          </Link>
 
-            {posts.map(post => (
-              <Card key={post._id} className="post-card mb-3">
-                <Card.Body>
-                  <div className="d-flex justify-content-between mb-3">
-                    <div className="d-flex gap-2">
-                      <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} size={40} />
-                      <div>
-                        <Link to={`/profile/${post.author?._id}`} className="text-decoration-none text-dark fw-bold">
-                          {post.author?.name}
-                        </Link>
-                        <div className="text-muted small">
-                          {moment(post.createdAt).fromNow()} · <FaGlobe size={10} className="text-muted" />
-                        </div>
+          {leftLinks.map(({ icon: Icon, label, color }) => (
+            <button key={label} style={styles.sidebarNavItem}>
+              <span style={{ ...styles.sidebarIconWrap, background: color + '22' }}>
+                <Icon size={18} color={color} />
+              </span>
+              <span style={styles.sidebarLinkText}>{label}</span>
+            </button>
+          ))}
+
+          <button style={styles.seeMoreBtn}>
+            <span style={styles.seeMoreIcon}><FaChevronDown size={14} color="#050505" /></span>
+            See more
+          </button>
+
+          <div style={styles.sidebarDivider} />
+          <div style={styles.sidebarSectionTitle}>Your shortcuts</div>
+
+          {suggestedUsers.slice(0, 3).map(u => (
+            <Link key={u._id} to={`/profile/${u._id}`} style={styles.sidebarProfileLink}>
+              <ClickableAvatar userId={u._id} src={u.profilePicture} size={36} />
+              <span style={styles.sidebarLinkText}>{u.name}</span>
+            </Link>
+          ))}
+
+          <div style={styles.sidebarDivider} />
+          <div style={styles.sidebarFooter}>
+            Privacy · Terms · Advertising<br />
+            © {new Date().getFullYear()} KaziLinda
+          </div>
+        </aside>
+
+        <main style={styles.feedCol}>
+          <StoriesBar />
+
+          <div style={styles.card}>
+            <div style={styles.createPostTop}>
+              <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+              <div
+                style={styles.createPostInput}
+                onClick={() => document.getElementById('kl-post-textarea').focus()}
+              >
+                <textarea
+                  id="kl-post-textarea"
+                  rows={1}
+                  placeholder={`What's on your mind, ${user?.name?.split(' ')[0]}?`}
+                  value={newPost}
+                  onChange={e => setNewPost(e.target.value)}
+                  style={styles.createTextarea}
+                />
+              </div>
+            </div>
+            <div style={styles.cardDivider} />
+            <div style={styles.createPostActions}>
+              <button style={styles.cpActionBtn}>
+                <FaVideo color="#45bd62" size={20} />
+                <span style={{ color: '#45bd62', fontWeight: 600 }}>Live video</span>
+              </button>
+              <button style={styles.cpActionBtn}>
+                <FaImage color="#1877f2" size={20} />
+                <span style={{ color: '#1877f2', fontWeight: 600 }}>Photo/Video</span>
+              </button>
+              <button style={styles.cpActionBtn}>
+                <FaSmile color={KL_BRAND} size={20} />
+                <span style={{ color: KL_BRAND, fontWeight: 600 }}>Feeling</span>
+              </button>
+              <button
+                style={styles.postBtn}
+                onClick={handleCreatePost}
+                disabled={posting}
+              >
+                {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
+              </button>
+            </div>
+          </div>
+
+          {posts.map(post => {
+            const reaction = activeReaction(post._id);
+            return (
+              <div key={post._id} style={styles.card}>
+                <div style={styles.postHeader}>
+                  <div style={styles.postAuthorRow}>
+                    <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} size={40} />
+                    <div style={{ marginLeft: 8 }}>
+                      <Link
+                        to={`/profile/${post.author?._id}`}
+                        style={styles.postAuthorName}
+                      >
+                        {post.author?.name}
+                      </Link>
+                      <div style={styles.postMeta}>
+                        {moment(post.createdAt).fromNow()} · <FaGlobe size={10} color="#65676b" />
                       </div>
                     </div>
-                    <Button variant="link" className="text-muted p-0"><FaEllipsisH /></Button>
                   </div>
-                  
-                  <p className="mb-3">{post.content}</p>
-                  
-                  {post.media && post.media.length > 0 && (
-                    <div className="post-media mb-3">
-                      {post.mediaType === 'video' ? (
-                        <video src={post.media[0]} controls className="w-100 rounded" />
+                  <button style={styles.moreBtn}>
+                    <FaEllipsisH size={18} color="#65676b" />
+                  </button>
+                </div>
+
+                <div style={styles.postContent}>{post.content}</div>
+
+                {post.media?.length > 0 && (
+                  <div style={styles.postMedia}>
+                    {post.mediaType === 'video' ? (
+                      <video src={post.media[0]} controls style={styles.postMediaEl} />
+                    ) : (
+                      <img src={post.media[0]} alt="Post" style={styles.postMediaEl} />
+                    )}
+                  </div>
+                )}
+
+                <div style={styles.postStats}>
+                  <div style={styles.statsLeft}>
+                    {post.likes?.length > 0 && (
+                      <>
+                        <div style={styles.reactionCircle}>👍</div>
+                        <span style={styles.statsCount}>{post.likes.length}</span>
+                      </>
+                    )}
+                  </div>
+                  <div style={styles.statsRight}>
+                    <span
+                      style={styles.statsLink}
+                      onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}
+                    >
+                      {post.comments?.length || 0} comments
+                    </span>
+                    <span
+                      style={{ ...styles.statsLink, marginLeft: 12 }}
+                      onClick={() => { setSelectedPost(post); setShowShareModal(true); }}
+                    >
+                      {post.shares?.length || 0} shares
+                    </span>
+                  </div>
+                </div>
+
+                <div style={styles.postActions}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <button
+                      style={{
+                        ...styles.postActionBtn,
+                        color: reaction ? reaction.color : '#65676b',
+                      }}
+                      onMouseEnter={() => openReaction(post._id)}
+                      onMouseLeave={() => closeReaction(post._id)}
+                      onClick={() => handleReaction(post._id, 'like')}
+                    >
+                      {reaction ? (
+                        <>{reaction.emoji} {reaction.label}</>
                       ) : (
-                        <img src={post.media[0]} alt="Post" className="w-100 rounded" />
+                        <><FaThumbsUp size={18} /> Like</>
                       )}
-                    </div>
-                  )}
-                  
-                  <div className="d-flex justify-content-between border-bottom pb-2 mb-2">
-                    <div className="d-flex align-items-center gap-1">
-                      <span className="reaction-summary">
-                        {post.likes?.length > 0 && (
-                          <>
-                            <FaThumbsUp className="text-primary" size={14} />
-                            <span className="ms-1 small text-muted">{post.likes?.length}</span>
-                          </>
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="small text-muted">{post.comments?.length || 0} comments</span>
-                      <span className="small text-muted ms-2">{post.shares?.length || 0} shares</span>
-                    </div>
-                  </div>
-                  
-                  <div className="d-flex justify-content-around">
-                    <div className="position-relative">
-                      <Button 
-                        variant="link" 
-                        className="text-decoration-none text-muted action-btn"
-                        onMouseEnter={() => setShowReactionMenu(post._id)}
-                        onMouseLeave={() => setTimeout(() => setShowReactionMenu(null), 300)}
+                    </button>
+
+                    {showReactionMenu === post._id && (
+                      <div
+                        style={styles.reactionPopup}
+                        onMouseEnter={() => openReaction(post._id)}
+                        onMouseLeave={() => closeReaction(post._id)}
                       >
-                        <FaThumbsUp className="me-1" /> Like
-                      </Button>
-                      {showReactionMenu === post._id && (
-                        <div className="reaction-menu" onMouseEnter={() => setShowReactionMenu(post._id)} onMouseLeave={() => setShowReactionMenu(null)}>
-                          {reactionsList.map(react => (
-                            <button key={react.type} className="reaction-option" onClick={() => handleReaction(post._id, react.type)}>
-                              <react.icon className={`text-${react.color}`} size={28} />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <Button variant="link" className="text-decoration-none text-muted action-btn" onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}>
-                      <FaComment className="me-1" /> Comment
-                    </Button>
-                    <Button variant="link" className="text-decoration-none text-muted action-btn" onClick={() => { setSelectedPost(post); setShowShareModal(true); }}>
-                      <FaShare className="me-1" /> Share
-                    </Button>
+                        {reactionsList.map(r => (
+                          <button
+                            key={r.type}
+                            style={{
+                              ...styles.reactionOption,
+                              transform: reactionHover === `${post._id}-${r.type}` ? 'scale(1.35) translateY(-6px)' : 'scale(1)',
+                            }}
+                            onMouseEnter={() => setReactionHover(`${post._id}-${r.type}`)}
+                            onMouseLeave={() => setReactionHover(null)}
+                            onClick={() => handleReaction(post._id, r.type)}
+                            title={r.label}
+                          >
+                            <span style={{ fontSize: 28 }}>{r.emoji}</span>
+                            {reactionHover === `${post._id}-${r.type}` && (
+                              <span style={styles.reactionLabel}>{r.label}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </Card.Body>
-              </Card>
-            ))}
-          </Col>
 
-          {/* Right Sidebar */}
-          <Col lg={3} className="d-none d-lg-block">
-            <div className="right-sidebar">
-              <div className="sidebar-header">
-                <strong>Suggested for you</strong>
-              </div>
-              {suggestedUsers.map(suggestion => (
-                <div key={suggestion._id} className="suggested-user">
-                  <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} size={40} />
-                  <div className="user-info">
-                    <Link to={`/profile/${suggestion._id}`} className="user-name">{suggestion.name}</Link>
-                    <div className="user-meta">{suggestion.role}</div>
-                  </div>
-                  <FollowButton 
-                    userId={suggestion._id} 
-                    isFollowingProp={followingStatus[suggestion._id] || false}
-                    onFollowChange={(newStatus) => {
-                      setFollowingStatus({ ...followingStatus, [suggestion._id]: newStatus });
-                      fetchSuggestions();
-                    }}
-                    token={token}
-                  />
+                  <button
+                    style={styles.postActionBtn}
+                    onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}
+                  >
+                    <FaComment size={18} /> Comment
+                  </button>
+
+                  <button
+                    style={styles.postActionBtn}
+                    onClick={() => { setSelectedPost(post); setShowShareModal(true); }}
+                  >
+                    <FaShare size={18} /> Share
+                  </button>
                 </div>
-              ))}
-              {suggestedUsers.length === 0 && (
-                <div className="text-muted text-center py-3 small">No suggestions</div>
-              )}
-              
-              <div className="sidebar-footer mt-3 text-center">
-                <small className="text-muted">© 2024 KAZI LINDA</small>
               </div>
+            );
+          })}
+
+          {posts.length === 0 && (
+            <div style={styles.emptyFeed}>
+              <FaGlobe size={48} color={KL_BRAND} />
+              <p style={{ marginTop: 12, color: '#65676b' }}>Your feed is empty. Follow people to see posts!</p>
             </div>
-          </Col>
-        </Row>
-      </Container>
+          )}
+        </main>
 
-      {/* Comment Modal */}
-      <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Comments</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedPost?.comments?.map(comment => (
-            <div key={comment._id} className="mb-3">
-              <div className="d-flex gap-2">
-                <ClickableAvatar userId={comment.user?._id} src={comment.user?.profilePicture} size={32} />
-                <div className="flex-grow-1">
-                  <strong>{comment.user?.name}</strong>
-                  <p className="mb-0">{comment.text}</p>
-                  <small className="text-muted">{moment(comment.createdAt).fromNow()}</small>
-                </div>
+        <aside style={styles.rightSidebar}>
+          <div style={styles.rsSectionTitle}>People you may know</div>
+          {suggestedUsers.map(suggestion => (
+            <div key={suggestion._id} style={styles.rsUserRow}>
+              <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} size={40} />
+              <div style={styles.rsUserInfo}>
+                <Link to={`/profile/${suggestion._id}`} style={styles.rsUserName}>
+                  {suggestion.name}
+                </Link>
+                <div style={styles.rsUserMeta}>{suggestion.role || 'KaziLinda member'}</div>
               </div>
-              <hr />
+              <FollowButton
+                userId={suggestion._id}
+                isFollowingProp={followingStatus[suggestion._id] || false}
+                onFollowChange={newStatus => {
+                  setFollowingStatus({ ...followingStatus, [suggestion._id]: newStatus });
+                  fetchSuggestions();
+                }}
+                token={token}
+              />
             </div>
           ))}
-          <InputGroup>
-            <Form.Control
-              placeholder="Write a comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            />
-            <Button variant="warning" onClick={handleAddComment}>
-              <FaPaperPlane />
-            </Button>
-          </InputGroup>
+          {suggestedUsers.length === 0 && (
+            <div style={styles.rsEmpty}>No suggestions right now</div>
+          )}
+
+          <div style={styles.sidebarDivider} />
+
+          <div style={styles.rsSectionTitle}>Online Friends</div>
+          {onlineFriends.map(friend => (
+            <div key={friend._id} style={styles.rsContactRow}>
+              <div style={{ position: 'relative' }}>
+                <ClickableAvatar userId={friend._id} src={friend.profilePicture} size={36} showOnline isOnline />
+                <span style={styles.onlineDot} />
+              </div>
+              <Link to={`/profile/${friend._id}`} style={styles.rsContactName}>
+                {friend.name}
+              </Link>
+            </div>
+          ))}
+          {onlineFriends.length === 0 && (
+            <div style={styles.rsEmpty}>No friends online</div>
+          )}
+
+          <div style={styles.sidebarDivider} />
+          <div style={styles.rsFooter}>© {new Date().getFullYear()} KaziLinda</div>
+        </aside>
+      </div>
+
+      <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)} centered size="lg">
+        <Modal.Header closeButton style={styles.modalHeader}>
+          <Modal.Title style={{ fontSize: 20, fontWeight: 700 }}>
+            {selectedPost?.author?.name}'s post
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '0 0 16px' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #dddfe2' }}>
+            <p style={{ margin: 0 }}>{selectedPost?.content}</p>
+          </div>
+          <div style={{ padding: '12px 16px', maxHeight: 320, overflowY: 'auto' }}>
+            {selectedPost?.comments?.map(comment => (
+              <div key={comment._id} style={styles.commentItem}>
+                <ClickableAvatar userId={comment.user?._id} src={comment.user?.profilePicture} size={32} />
+                <div style={styles.commentBubble}>
+                  <strong style={{ fontSize: 13 }}>{comment.user?.name}</strong>
+                  <p style={{ margin: 0, fontSize: 15 }}>{comment.text}</p>
+                  <span style={styles.commentTime}>{moment(comment.createdAt).fromNow()}</span>
+                </div>
+              </div>
+            ))}
+            {!selectedPost?.comments?.length && (
+              <div style={{ textAlign: 'center', color: '#65676b', padding: 16 }}>
+                No comments yet. Be the first!
+              </div>
+            )}
+          </div>
+          <div style={{ padding: '0 16px' }}>
+            <InputGroup>
+              <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={32} />
+              <Form.Control
+                placeholder="Write a comment…"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddComment()}
+                style={{ borderRadius: '20px', marginLeft: 8, background: '#f0f2f5', border: 'none' }}
+              />
+              <Button
+                onClick={handleAddComment}
+                style={{ background: KL_BRAND, border: 'none', borderRadius: '50%', width: 36, height: 36, padding: 0, marginLeft: 8 }}
+              >
+                <FaPaperPlane size={14} />
+              </Button>
+            </InputGroup>
+          </div>
         </Modal.Body>
       </Modal>
 
-      {/* Share Modal */}
-      <Modal show={showShareModal} onHide={() => setShowShareModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Share this post</Modal.Title>
+      <Modal show={showShareModal} onHide={() => setShowShareModal(false)} centered>
+        <Modal.Header closeButton style={styles.modalHeader}>
+          <Modal.Title style={{ fontSize: 20, fontWeight: 700 }}>Share post</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+            <div>
+              <strong>{user?.name}</strong>
+              <div style={{ fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <FaGlobe size={11} /> Public
+              </div>
+            </div>
+          </div>
           <Form.Control
             as="textarea"
             rows={3}
-            placeholder="Say something about this post..."
+            placeholder="Say something about this…"
             value={shareText}
-            onChange={(e) => setShareText(e.target.value)}
+            onChange={e => setShareText(e.target.value)}
+            style={{ border: 'none', outline: 'none', resize: 'none', fontSize: 20, padding: 0 }}
           />
+          {selectedPost && (
+            <div style={styles.sharePreview}>
+              <strong style={{ fontSize: 13 }}>{selectedPost.author?.name}</strong>
+              <p style={{ margin: 0, fontSize: 14, color: '#65676b' }}>{selectedPost.content?.slice(0, 120)}…</p>
+            </div>
+          )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowShareModal(false)}>Cancel</Button>
-          <Button variant="warning" onClick={handleShare}>Share Now</Button>
+        <Modal.Footer style={{ border: 'none' }}>
+          <Button
+            onClick={handleShare}
+            style={{ background: KL_BRAND, border: 'none', borderRadius: 6, fontWeight: 700, width: '100%' }}
+          >
+            Share now
+          </Button>
         </Modal.Footer>
       </Modal>
-
-      <style>{`
-        .facebook-feed { background: #f0f2f5; min-height: 100vh; padding: 20px 0; }
-        .left-sidebar, .right-sidebar { position: sticky; top: 80px; background: white; border-radius: 10px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .sidebar-header { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #e4e6eb; }
-        .online-friend { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
-        .friend-name { color: #050505; text-decoration: none; font-size: 14px; font-weight: 500; }
-        .friend-name:hover { color: #f39c12; text-decoration: underline; }
-        .create-post-card { border: none; border-radius: 10px; }
-        .post-card { border: none; border-radius: 10px; transition: box-shadow 0.2s; }
-        .post-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
-        .action-btn { font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; width: 100%; }
-        .action-btn:hover { background: #f0f2f5; }
-        .reaction-menu { position: absolute; bottom: 100%; left: 0; background: white; border-radius: 40px; padding: 8px 12px; display: flex; gap: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); z-index: 1000; }
-        .reaction-option { background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%; transition: transform 0.1s; }
-        .reaction-option:hover { transform: scale(1.2); background: #f0f2f5; }
-        .suggested-user { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #e4e6eb; }
-        .suggested-user:last-child { border-bottom: none; }
-        .user-info { flex: 1; }
-        .user-name { color: #050505; text-decoration: none; font-size: 14px; font-weight: 600; }
-        .user-name:hover { color: #f39c12; text-decoration: underline; }
-        .user-meta { font-size: 12px; color: #65676b; }
-        .post-media { max-height: 500px; overflow: hidden; display: flex; justify-content: center; background: #1a1a1a; border-radius: 8px; }
-        .post-media img, .post-media video { max-height: 500px; object-fit: contain; }
-      `}</style>
     </div>
   );
+};
+
+const styles = {
+  page: {
+    background: '#f0f2f5',
+    minHeight: '100vh',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  },
+  loadingWrap: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', height: '100vh', background: '#f0f2f5',
+  },
+  loadingLogo: {
+    width: 60, height: 60, borderRadius: '50%', background: KL_BRAND,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#fff', fontWeight: 900, fontSize: 24, fontStyle: 'italic',
+  },
+  nav: {
+    position: 'fixed', top: 0, left: 0, right: 0, height: 56,
+    background: '#fff', borderBottom: '1px solid #dddfe2',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '0 16px', zIndex: 200,
+    boxShadow: '0 2px 4px rgba(0,0,0,.08)',
+  },
+  navLeft: { display: 'flex', alignItems: 'center', gap: 8 },
+  navCenter: { display: 'flex', gap: 4 },
+  navRight: { display: 'flex', alignItems: 'center', gap: 8 },
+  logoBox: {
+    width: 40, height: 40, borderRadius: '50%',
+    background: KL_BRAND,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    textDecoration: 'none',
+  },
+  logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' },
+  searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
+  searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 },
+  searchInput: {
+    background: '#f0f2f5', border: 'none', borderRadius: 20,
+    padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none',
+    width: 240, color: '#050505',
+  },
+  navTab: {
+    width: 100, height: 48, border: 'none', background: 'transparent',
+    borderRadius: 10, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    position: 'relative',
+  },
+  navTabActive: { background: KL_BRAND_LIGHT },
+  navTabLine: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
+    background: KL_BRAND, borderRadius: '2px 2px 0 0',
+  },
+  navIconBtn: {
+    position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+  },
+  navIconInner: {
+    width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute', top: 0, right: 0,
+    background: '#e41e3f', color: '#fff', borderRadius: 10,
+    fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center',
+  },
+  body: {
+    display: 'flex', paddingTop: 56,
+    maxWidth: 1440, margin: '0 auto',
+  },
+  leftSidebar: {
+    width: 280, flexShrink: 0,
+    padding: '12px 8px',
+    position: 'sticky', top: 56, height: 'calc(100vh - 56px)',
+    overflowY: 'auto',
+  },
+  sidebarProfileLink: {
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: '8px 8px', borderRadius: 8,
+    textDecoration: 'none', color: '#050505',
+    fontWeight: 500, fontSize: 15,
+  },
+  sidebarNavItem: {
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: '8px 8px', borderRadius: 8,
+    border: 'none', background: 'transparent',
+    cursor: 'pointer', width: '100%',
+    fontWeight: 500, fontSize: 15, color: '#050505',
+    textAlign: 'left',
+  },
+  sidebarIconWrap: {
+    width: 36, height: 36, borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  sidebarLinkText: { fontSize: 15, fontWeight: 500, color: '#050505' },
+  seeMoreBtn: {
+    display: 'flex', alignItems: 'center', gap: 12,
+    padding: 8, borderRadius: 8, border: 'none', background: 'transparent',
+    cursor: 'pointer', width: '100%', fontSize: 15, fontWeight: 500, color: '#050505',
+  },
+  seeMoreIcon: {
+    width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '8px 0' },
+  sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
+  sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 },
+  feedCol: {
+    flex: 1, maxWidth: 590, margin: '0 auto', padding: '16px 8px',
+    minWidth: 0,
+  },
+  card: {
+    background: '#fff', borderRadius: 8,
+    boxShadow: '0 1px 2px rgba(0,0,0,.2)',
+    marginBottom: 16, overflow: 'hidden',
+  },
+  cardDivider: { borderTop: '1px solid #dddfe2', margin: 0 },
+  createPostTop: {
+    display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px',
+  },
+  createPostInput: {
+    flex: 1, background: '#f0f2f5', borderRadius: 20, padding: '8px 16px', cursor: 'text',
+  },
+  createTextarea: {
+    background: 'transparent', border: 'none', outline: 'none',
+    width: '100%', resize: 'none', fontSize: 17, color: '#050505',
+    fontFamily: 'inherit', lineHeight: 1.4,
+  },
+  createPostActions: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 12px',
+  },
+  cpActionBtn: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '6px 12px', borderRadius: 8, border: 'none', background: 'transparent',
+    cursor: 'pointer', fontSize: 15,
+  },
+  postBtn: {
+    background: KL_BRAND, color: '#fff', border: 'none',
+    borderRadius: 6, padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontSize: 15,
+  },
+  postHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+    padding: '12px 16px 0',
+  },
+  postAuthorRow: { display: 'flex', alignItems: 'center' },
+  postAuthorName: {
+    fontWeight: 600, fontSize: 15, color: '#050505', textDecoration: 'none', display: 'block',
+  },
+  postMeta: { fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
+  moreBtn: {
+    width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  postContent: { padding: '10px 16px 12px', fontSize: 15, lineHeight: 1.5, color: '#050505' },
+  postMedia: {
+    maxHeight: 500, overflow: 'hidden',
+    display: 'flex', justifyContent: 'center', background: '#1a1a1a',
+  },
+  postMediaEl: { maxHeight: 500, width: '100%', objectFit: 'contain' },
+  postStats: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '8px 16px', borderBottom: '1px solid #dddfe2',
+  },
+  statsLeft: { display: 'flex', alignItems: 'center', gap: 4 },
+  statsCount: { fontSize: 15, color: '#65676b' },
+  statsRight: { display: 'flex', gap: 0 },
+  statsLink: { fontSize: 15, color: '#65676b', cursor: 'pointer' },
+  reactionCircle: {
+    width: 20, height: 20, borderRadius: '50%',
+    background: '#1877f2', border: '2px solid #fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 11,
+  },
+  postActions: {
+    display: 'flex', padding: '4px 8px',
+  },
+  postActionBtn: {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    padding: '6px 0', borderRadius: 4, border: 'none', background: 'transparent',
+    cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b',
+  },
+  reactionPopup: {
+    position: 'absolute', bottom: 'calc(100% + 4px)', left: 0,
+    background: '#fff', borderRadius: 40,
+    boxShadow: '0 2px 12px rgba(0,0,0,.2)',
+    display: 'flex', padding: '6px 8px', gap: 4, zIndex: 300,
+  },
+  reactionOption: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    padding: '6px', borderRadius: '50%',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    transition: 'transform .12s',
+    position: 'relative',
+  },
+  reactionLabel: {
+    position: 'absolute', bottom: '100%', left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(0,0,0,.75)', color: '#fff',
+    fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 6px',
+    whiteSpace: 'nowrap', marginBottom: 4,
+  },
+  commentItem: { display: 'flex', gap: 8, marginBottom: 12 },
+  commentBubble: {
+    background: '#f0f2f5', borderRadius: 18, padding: '8px 12px', flex: 1,
+  },
+  commentTime: { fontSize: 12, color: '#65676b' },
+  sharePreview: {
+    border: '1px solid #dddfe2', borderRadius: 8, padding: '10px 12px', marginTop: 12,
+  },
+  rightSidebar: {
+    width: 280, flexShrink: 0, padding: '12px 8px',
+    position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto',
+  },
+  rsSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '4px 8px', marginBottom: 8 },
+  rsUserRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid #f0f2f5' },
+  rsUserInfo: { flex: 1, minWidth: 0 },
+  rsUserName: { fontSize: 14, fontWeight: 600, color: '#050505', textDecoration: 'none', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  rsUserMeta: { fontSize: 12, color: '#65676b' },
+  rsContactRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px', borderRadius: 8, cursor: 'pointer', position: 'relative' },
+  rsContactName: { fontSize: 15, color: '#050505', textDecoration: 'none', fontWeight: 400 },
+  rsEmpty: { fontSize: 14, color: '#65676b', textAlign: 'center', padding: '12px 0' },
+  rsFooter: { fontSize: 12, color: '#65676b', padding: '8px', textAlign: 'center' },
+  onlineDot: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 12, height: 12, background: '#31a24c',
+    borderRadius: '50%', border: '2px solid #fff',
+  },
+  emptyFeed: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    padding: 48, background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)',
+  },
+  modalHeader: { borderBottom: '1px solid #dddfe2' },
 };
 
 export default NewsFeed;
