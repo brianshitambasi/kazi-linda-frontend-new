@@ -15,22 +15,25 @@ import Login from './pages/Login';
 import RegisterEnhanced from './pages/RegisterEnhanced';
 import WorkerDashboard from './pages/WorkerDashboard';
 import EmployerDashboard from './pages/EmployerDashboard';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminAnalytics from "./pages/Admin/AdminAnalytics";
+import AdminDashboard
+import AdminJobs from "./pages/Admin/AdminJobs";
+import AdminReports from "./pages/Admin/AdminReports";
+import AdminActivityLog from "./pages/Admin/AdminActivityLog";
+import AdminAnalytics from "./pages/Admin/AdminAnalytics"; from './pages/AdminDashboard';
+import AdminJobs from "./pages/Admin/AdminJobs";
+import AdminReports from "./pages/Admin/AdminReports";
+import AdminActivityLog from "./pages/Admin/AdminActivityLog";
 import EmbassyDashboard from './pages/EmbassyDashboard';
 import Messages from './pages/Messages/Messages';
 import ProfileEdit from './pages/ProfileEdit';
 import NewsFeed from './pages/NewsFeed';
 import Profile from './pages/Profile';
 import Discover from './pages/Discover';
-import Friends from './pages/Friends';
-import AdminJobs from './pages/Admin/AdminJobs';
-import AdminReports from './pages/Admin/AdminReports';
-import AdminActivityLog from './pages/Admin/AdminActivityLog';
-import AdminAnalytics from './pages/Admin/AdminAnalytics';
 
 const HomeRedirect = () => {
   const { user } = useAuth();
-  return user ? <Navigate to="/news" replace /> : <Home />;
+  return user ? <Navigate to="/news" /> : <Home />;
 };
 
 function App() {
@@ -40,7 +43,6 @@ function App() {
         <Layout>
           <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
           <Routes>
-            {/* Public Routes */}
             <Route path="/" element={<HomeRedirect />} />
             <Route path="/about" element={<About />} />
             <Route path="/jobs" element={<Jobs />} />
@@ -48,35 +50,27 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<RegisterEnhanced />} />
             
-            {/* Social / Feed Routes */}
             <Route path="/news" element={<ProtectedRoute><NewsFeed /></ProtectedRoute>} />
-            <Route path="/social" element={<ProtectedRoute><Navigate to="/news" replace /></ProtectedRoute>} />
-            <Route path="/feed" element={<ProtectedRoute><Navigate to="/news" replace /></ProtectedRoute>} />
-            
-            {/* User Routes */}
             <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
             <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
-            <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
             <Route path="/verify" element={<ProtectedRoute><VerifyEmployer /></ProtectedRoute>} />
             <Route path="/blacklist" element={<ProtectedRoute><Blacklist /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             
-            {/* Dashboard Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><WorkerDashboard /></ProtectedRoute>} />
             <Route path="/employer/dashboard" element={<ProtectedRoute><EmployerDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/embassy/dashboard" element={<ProtectedRoute><EmbassyDashboard /></ProtectedRoute>} />
-            
-            {/* Admin Management Routes */}
             <Route path="/admin/jobs" element={<ProtectedRoute><AdminJobs /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/activity-log" element={<ProtectedRoute><AdminActivityLog /></ProtectedRoute>} />
-            
-            {/* 404 - Catch all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/admin/jobs" element={<ProtectedRoute><AdminJobs /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
+            <Route path="/admin/activity-log" element={<ProtectedRoute><AdminActivityLog /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/embassy/dashboard" element={<ProtectedRoute><EmbassyDashboard /></ProtectedRoute>} />
           </Routes>
         </Layout>
       </BrowserRouter>

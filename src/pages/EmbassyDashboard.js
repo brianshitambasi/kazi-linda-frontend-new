@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ClickableAvatar from "../components/Common/ClickableAvatar";
-import { Container, Card, Spinner, Table, Badge, Button } from 'react-bootstrap';
+import {Spinner,Badge, Button } from 'react-bootstrap';
 import { 
   FaUsers, FaFlag, FaCheckCircle, FaGlobe, FaHome, FaSearch, 
-  FaBell, FaFacebookMessenger, FaEllipsisH, FaBriefcase, FaShieldAlt,
-  FaUserFriends, FaBuilding, FaEnvelope, FaPhoneAlt
+  FaBell, FaFacebookMessenger, FaEllipsisH, FaShieldAlt,
+  FaBuilding, FaEnvelope, FaPhoneAlt
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 

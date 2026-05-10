@@ -1,0 +1,2 @@
+// In NewsFeed.js, make sure ClickableAvatar receives the correct src
+// Change instances where ClickableAvatar is used to pass profilePicture

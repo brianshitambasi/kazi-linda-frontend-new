@@ -141,14 +141,14 @@ const Friends = () => {
           <button style={styles.navIconBtn}><div style={styles.navIconInner}><FaEllipsisH size={18} /></div></button>
           <button style={styles.navIconBtn}><div style={styles.navIconInner}><FaFacebookMessenger size={18} /></div></button>
           <button style={styles.navIconBtn}><div style={styles.navIconInner}><FaBell size={18} /></div><span style={styles.badge}>3</span></button>
-          <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+          <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
         </div>
       </nav>
 
       <div style={styles.body}>
         <aside style={styles.leftSidebar}>
           <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={36} />
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={36} />
             <span style={styles.sidebarLinkText}>{user?.name || 'Guest User'}</span>
           </Link>
           {leftLinks.map(({ icon: Icon, label, count, color, active }) => (
@@ -181,7 +181,7 @@ const Friends = () => {
             <div style={styles.friendsGrid}>{filteredFriends.map(friend => (
               <div key={friend._id} style={styles.friendCard}>
                 <Link to={`/profile/${friend._id}`} style={styles.friendCardLink}>
-                  <ClickableAvatar userId={friend._id} src={friend.profilePicture} size={100} />
+                  <ClickableAvatar userId={friend._id} src={friend.profilePicture} name={friend.name} size={100} />
                   <h4 style={styles.friendName}>{friend.name}</h4>
                   <div style={styles.friendRole}><FaBriefcase size={12} /> {friend.role || 'Worker'}</div>
                   {friend.currentCountry && <div style={styles.friendLocation}><FaMapMarkerAlt size={12} /> {friend.currentCountry}</div>}
@@ -201,7 +201,7 @@ const Friends = () => {
             <div style={styles.suggestionsGrid}>{suggestions.map(suggestion => (
               <div key={suggestion._id} style={styles.suggestionCard}>
                 <Link to={`/profile/${suggestion._id}`} style={styles.friendCardLink}>
-                  <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} size={80} />
+                  <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} name={suggestion.name} size={80} />
                   <h4 style={styles.friendName}>{suggestion.name}</h4>
                   <div style={styles.friendRole}><FaBriefcase size={12} /> {suggestion.role || 'Worker'}</div>
                   {suggestion.currentCountry && <div style={styles.friendLocation}><FaMapMarkerAlt size={12} /> {suggestion.currentCountry}</div>}
@@ -215,7 +215,7 @@ const Friends = () => {
         <aside style={styles.rightSidebar}>
           <div style={styles.rightCard}><div style={styles.rightCardHeader}><FaUserPlus color={KL_BRAND} /><span>Friend Requests</span></div><div style={styles.emptyRequests}><p>No pending requests</p><small>When someone follows you, they'll appear here</small></div></div>
           <div style={styles.rightCard}><div style={styles.rightCardHeader}><FaUserFriends color="#45bd62" /><span>Online Friends</span></div>{friends.slice(0, 5).map(friend => (
-            <div key={friend._id} style={styles.onlineFriend}><div style={styles.onlineAvatar}><ClickableAvatar userId={friend._id} src={friend.profilePicture} size={36} /><span style={styles.onlineDot} /></div><div><Link to={`/profile/${friend._id}`} style={styles.onlineName}>{friend.name}</Link><div style={styles.onlineStatus}>Active now</div></div></div>
+            <div key={friend._id} style={styles.onlineFriend}><div style={styles.onlineAvatar}><ClickableAvatar userId={friend._id} src={friend.profilePicture} name={friend.name} size={36} /><span style={styles.onlineDot} /></div><div><Link to={`/profile/${friend._id}`} style={styles.onlineName}>{friend.name}</Link><div style={styles.onlineStatus}>Active now</div></div></div>
           ))}{friends.length === 0 && <div style={styles.emptyStateSmall}>No friends online</div>}</div>
           <div style={styles.inviteCard}><FaUserFriends size={32} color={KL_BRAND} /><h4>Invite friends to join</h4><p>Help grow the KaziLinda community</p><Button style={styles.inviteBtn}>Send Invites</Button></div>
           <div style={styles.sidebarFooter}>© {new Date().getFullYear()} KaziLinda</div>

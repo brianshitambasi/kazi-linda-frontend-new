@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Spinner, Modal, Form, InputGroup, Button } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Spinner, Modal, Form, InputGroup, Button, ProgressBar } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 import FollowButton from '../components/Common/FollowButton';
@@ -9,7 +9,9 @@ import {
   FaEllipsisH, FaGlobe, FaPaperPlane, FaThumbsUp, FaLaughBeam,
   FaSadTear, FaAngry, FaRegSmile, FaVideo, FaHome, FaStore,
   FaUsers, FaPlayCircle, FaBell, FaFacebookMessenger, FaSearch,
-  FaChevronDown, FaUserFriends, FaBookmark, FaCalendarAlt, FaClock
+  FaChevronDown, FaUserFriends, FaBookmark, FaCalendarAlt, FaClock,
+// eslint-disable-next-line no-unused-vars
+  FaTimes, FaSpinner
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -19,12 +21,12 @@ const KL_BRAND = '#f39c12';
 const KL_BRAND_LIGHT = '#fef9e7';
 
 const reactionsList = [
-  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'üëç' },
+  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'Ì±ç' },
   { type: 'love',  icon: FaHeart,     color: '#f33e58', label: 'Love',  emoji: '‚ù§Ô∏è' },
-  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: 'üòÇ' },
-  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: 'üòÆ' },
-  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: 'üò¢' },
-  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: 'üò°' },
+  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: 'Ì∏Ç' },
+  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: 'Ì∏Æ' },
+  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: 'Ì∏¢' },
+  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: 'Ì∏°' },
 ];
 
 const NewsFeed = () => {
@@ -33,6 +35,7 @@ const NewsFeed = () => {
   const [loading, setLoading] = useState(true);
   const [newPost, setNewPost] = useState('');
   const [posting, setPosting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showReactionMenu, setShowReactionMenu] = useState(null);
   const [reactionHover, setReactionHover] = useState(null);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
@@ -45,7 +48,13 @@ const NewsFeed = () => {
   const [shareText, setShareText] = useState('');
   const [reactions, setReactions] = useState({});
   const [activeNav, setActiveNav] = useState('home');
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
+  const [showMediaModal, setShowMediaModal] = useState(false);
   const reactionTimers = React.useRef({});
+  const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -111,44 +120,148 @@ const NewsFeed = () => {
     return () => clearInterval(interval);
   }, [fetchFeed, fetchSuggestions, fetchOnlineFriends]);
 
+  // Handle media file selection
+  const handleMediaSelect = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('File size must be less than 50MB');
+      return;
+    }
+
+    // Validate file type
+    if (type === 'photo' && !file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (type === 'video' && !file.type.startsWith('video/')) {
+      toast.error('Please select a video file');
+      return;
+    }
+
+    setSelectedMedia(file);
+    setMediaType(type);
+    setMediaPreview(URL.createObjectURL(file));
+    setShowMediaModal(true);
+  };
+
+  // Upload media to Cloudinary
+  const uploadMedia = async (file, type) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'kazi_linda_uploads');
+    formData.append('resource_type', type === 'video' ? 'video' : 'image');
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/denczbmin/${type === 'video' ? 'video' : 'image'}/upload`);
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(progress);
+        }
+      };
+      
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response.secure_url);
+        } else {
+          reject(new Error('Upload failed'));
+        }
+      };
+      
+      xhr.onerror = () => reject(new Error('Upload failed'));
+      xhr.send(formData);
+    });
+  };
+
+  // Create post with media
   const handleCreatePost = async () => {
-    if (!newPost.trim()) { toast.error('Please write something'); return; }
+    if (!newPost.trim() && !selectedMedia) {
+      toast.error('Please write something or add media');
+      return;
+    }
+
     setPosting(true);
+    setUploadProgress(0);
+
     try {
-      const res = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
+      let mediaUrl = null;
+      let finalMediaType = null;
+
+      // Upload media if selected
+      if (selectedMedia) {
+        mediaUrl = await uploadMedia(selectedMedia, mediaType);
+        finalMediaType = mediaType;
+      }
+
+      // Create post
+      const response = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newPost }),
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content: newPost,
+          media: mediaUrl ? [mediaUrl] : [],
+          mediaType: finalMediaType || 'text',
+          privacy: 'public',
+          postType: 'status'
+        }),
       });
-      const post = await res.json();
-      setPosts([post, ...posts]);
-      setNewPost('');
-      toast.success('Post shared!');
-    } catch {
-      toast.error('Failed to post');
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPosts([data, ...posts]);
+        setNewPost('');
+        setSelectedMedia(null);
+        setMediaPreview(null);
+        setMediaType(null);
+        setShowMediaModal(false);
+        toast.success('Post shared!');
+      } else {
+        toast.error(data.message || 'Failed to post');
+      }
+    } catch (err) {
+      console.error('Create post error:', err);
+      toast.error('Failed to upload. Please try again.');
     } finally {
       setPosting(false);
+      setUploadProgress(0);
     }
   };
 
   const handleReaction = async (postId, reactionType) => {
     try {
-      await fetch(`https://kazi-linda.onrender.com/api/social/posts/${postId}/like`, {
+      const response = await fetch(`https://kazi-linda.onrender.com/api/social/posts/${postId}/like`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
-      setReactions({ ...reactions, [postId]: reactionType });
+      
+      if (response.ok) {
+        setReactions({ ...reactions, [postId]: reactionType });
+        fetchFeed();
+      }
       setShowReactionMenu(null);
-      fetchFeed();
     } catch (err) {
       console.error(err);
+      toast.error('Failed to react');
     }
   };
 
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
     try {
-      await fetch(
+      const response = await fetch(
         `https://kazi-linda.onrender.com/api/social/posts/${selectedPost._id}/comment`,
         {
           method: 'POST',
@@ -156,10 +269,15 @@ const NewsFeed = () => {
           body: JSON.stringify({ text: commentText }),
         }
       );
-      setCommentText('');
-      setShowCommentModal(false);
-      fetchFeed();
-      toast.success('Comment added!');
+      
+      if (response.ok) {
+        setCommentText('');
+        setShowCommentModal(false);
+        fetchFeed();
+        toast.success('Comment added!');
+      } else {
+        toast.error('Failed to add comment');
+      }
     } catch {
       toast.error('Failed to add comment');
     }
@@ -167,18 +285,24 @@ const NewsFeed = () => {
 
   const handleShare = async () => {
     try {
-      await fetch('https://kazi-linda.onrender.com/api/social/posts', {
+      const response = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: shareText || `Shared a post from ${selectedPost?.author?.name}`,
           originalPost: selectedPost?._id,
+          postType: 'share'
         }),
       });
-      setShowShareModal(false);
-      setShareText('');
-      fetchFeed();
-      toast.success('Post shared!');
+      
+      if (response.ok) {
+        setShowShareModal(false);
+        setShareText('');
+        fetchFeed();
+        toast.success('Post shared!');
+      } else {
+        toast.error('Failed to share');
+      }
     } catch {
       toast.error('Failed to share');
     }
@@ -205,20 +329,20 @@ const NewsFeed = () => {
   }
 
   const navTabs = [
-    { id: 'home',        icon: FaHome,        label: 'Home' },
-    { id: 'watch',       icon: FaPlayCircle,  label: 'Watch' },
-    { id: 'marketplace', icon: FaStore,       label: 'Market' },
-    { id: 'groups',      icon: FaUsers,       label: 'Groups' },
-    { id: 'gaming',      icon: FaCalendarAlt, label: 'Events' },
+    { id: 'home', icon: FaHome, label: 'Home' },
+    { id: 'watch', icon: FaPlayCircle, label: 'Watch' },
+    { id: 'marketplace', icon: FaStore, label: 'Market' },
+    { id: 'groups', icon: FaUsers, label: 'Groups' },
+    { id: 'gaming', icon: FaCalendarAlt, label: 'Events' },
   ];
 
   const leftLinks = [
-    { icon: FaUserFriends, label: 'Friends',   color: '#1877f2' },
-    { icon: FaStore,       label: 'Marketplace', color: '#e41e3f' },
-    { icon: FaPlayCircle,  label: 'Watch',     color: '#7c3aed' },
-    { icon: FaBookmark,    label: 'Saved',     color: '#7c3aed' },
-    { icon: FaCalendarAlt, label: 'Events',    color: KL_BRAND },
-    { icon: FaClock,       label: 'Memories',  color: KL_BRAND },
+    { icon: FaUserFriends, label: 'Friends', color: '#1877f2' },
+    { icon: FaStore, label: 'Marketplace', color: '#e41e3f' },
+    { icon: FaPlayCircle, label: 'Watch', color: '#7c3aed' },
+    { icon: FaBookmark, label: 'Saved', color: '#7c3aed' },
+    { icon: FaCalendarAlt, label: 'Events', color: KL_BRAND },
+    { icon: FaClock, label: 'Memories', color: KL_BRAND },
   ];
 
   return (
@@ -253,32 +377,26 @@ const NewsFeed = () => {
 
         <div style={styles.navRight}>
           <button style={styles.navIconBtn} title="Menu">
-            <div style={styles.navIconInner}>
-              <FaEllipsisH size={18} color="#050505" />
-            </div>
+            <div style={styles.navIconInner}><FaEllipsisH size={18} color="#050505" /></div>
           </button>
           <button style={styles.navIconBtn} title="Messenger">
-            <div style={styles.navIconInner}>
-              <FaFacebookMessenger size={18} color="#050505" />
-            </div>
+            <div style={styles.navIconInner}><FaFacebookMessenger size={18} color="#050505" /></div>
             <span style={styles.badge}>3</span>
           </button>
           <button style={styles.navIconBtn} title="Notifications">
-            <div style={styles.navIconInner}>
-              <FaBell size={18} color="#050505" />
-            </div>
+            <div style={styles.navIconInner}><FaBell size={18} color="#050505" /></div>
             <span style={styles.badge}>9</span>
           </button>
-          <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+          <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
         </div>
       </nav>
 
       <div style={styles.body}>
         <aside style={styles.leftSidebar}>
-          <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={36} />
+          <div style={styles.sidebarProfileLink}>
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={36} />
             <span style={styles.sidebarLinkText}>{user?.name}</span>
-          </Link>
+          </div>
 
           {leftLinks.map(({ icon: Icon, label, color }) => (
             <button key={label} style={styles.sidebarNavItem}>
@@ -298,10 +416,10 @@ const NewsFeed = () => {
           <div style={styles.sidebarSectionTitle}>Your shortcuts</div>
 
           {suggestedUsers.slice(0, 3).map(u => (
-            <Link key={u._id} to={`/profile/${u._id}`} style={styles.sidebarProfileLink}>
+            <div key={u._id} style={styles.sidebarProfileLink}>
               <ClickableAvatar userId={u._id} src={u.profilePicture} size={36} />
               <span style={styles.sidebarLinkText}>{u.name}</span>
-            </Link>
+            </div>
           ))}
 
           <div style={styles.sidebarDivider} />
@@ -316,7 +434,7 @@ const NewsFeed = () => {
 
           <div style={styles.card}>
             <div style={styles.createPostTop}>
-              <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+              <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
               <div
                 style={styles.createPostInput}
                 onClick={() => document.getElementById('kl-post-textarea').focus()}
@@ -331,13 +449,33 @@ const NewsFeed = () => {
                 />
               </div>
             </div>
+            
+            {/* Media Preview */}
+            {mediaPreview && (
+              <div style={styles.mediaPreviewContainer}>
+                <div style={styles.mediaPreviewHeader}>
+                  <span>Media preview</span>
+                  <button onClick={() => { setMediaPreview(null); setSelectedMedia(null); }} style={styles.removeMediaBtn}>
+                    <FaTimes />
+                  </button>
+                </div>
+                {mediaType === 'video' ? (
+                  <video src={mediaPreview} controls style={styles.mediaPreview} />
+                ) : (
+                  <img src={mediaPreview} alt="Preview" style={styles.mediaPreview} />
+                )}
+              </div>
+            )}
+            
             <div style={styles.cardDivider} />
             <div style={styles.createPostActions}>
-              <button style={styles.cpActionBtn}>
+              <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={(e) => handleMediaSelect(e, 'photo')} />
+              <input type="file" ref={videoInputRef} accept="video/*" style={{ display: 'none' }} onChange={(e) => handleMediaSelect(e, 'video')} />
+              <button style={styles.cpActionBtn} onClick={() => videoInputRef.current?.click()}>
                 <FaVideo color="#45bd62" size={20} />
                 <span style={{ color: '#45bd62', fontWeight: 600 }}>Live video</span>
               </button>
-              <button style={styles.cpActionBtn}>
+              <button style={styles.cpActionBtn} onClick={() => fileInputRef.current?.click()}>
                 <FaImage color="#1877f2" size={20} />
                 <span style={{ color: '#1877f2', fontWeight: 600 }}>Photo/Video</span>
               </button>
@@ -353,6 +491,9 @@ const NewsFeed = () => {
                 {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
               </button>
             </div>
+            {posting && uploadProgress > 0 && (
+              <ProgressBar now={uploadProgress} label={`${uploadProgress}%`} style={styles.uploadProgress} />
+            )}
           </div>
 
           {posts.map(post => {
@@ -361,14 +502,11 @@ const NewsFeed = () => {
               <div key={post._id} style={styles.card}>
                 <div style={styles.postHeader}>
                   <div style={styles.postAuthorRow}>
-                    <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} size={40} />
+                    <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} name={post.author?.name} size={40} />
                     <div style={{ marginLeft: 8 }}>
-                      <Link
-                        to={`/profile/${post.author?._id}`}
-                        style={styles.postAuthorName}
-                      >
+                      <div style={styles.postAuthorName}>
                         {post.author?.name}
-                      </Link>
+                      </div>
                       <div style={styles.postMeta}>
                         {moment(post.createdAt).fromNow()} ¬∑ <FaGlobe size={10} color="#65676b" />
                       </div>
@@ -395,7 +533,7 @@ const NewsFeed = () => {
                   <div style={styles.statsLeft}>
                     {post.likes?.length > 0 && (
                       <>
-                        <div style={styles.reactionCircle}>üëç</div>
+                        <div style={styles.reactionCircle}>Ì±ç</div>
                         <span style={styles.statsCount}>{post.likes.length}</span>
                       </>
                     )}
@@ -492,11 +630,11 @@ const NewsFeed = () => {
           <div style={styles.rsSectionTitle}>People you may know</div>
           {suggestedUsers.map(suggestion => (
             <div key={suggestion._id} style={styles.rsUserRow}>
-              <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} size={40} />
+              <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} name={suggestion.name} size={40} />
               <div style={styles.rsUserInfo}>
-                <Link to={`/profile/${suggestion._id}`} style={styles.rsUserName}>
+                <div style={styles.rsUserName}>
                   {suggestion.name}
-                </Link>
+                </div>
                 <div style={styles.rsUserMeta}>{suggestion.role || 'KaziLinda member'}</div>
               </div>
               <FollowButton
@@ -520,12 +658,12 @@ const NewsFeed = () => {
           {onlineFriends.map(friend => (
             <div key={friend._id} style={styles.rsContactRow}>
               <div style={{ position: 'relative' }}>
-                <ClickableAvatar userId={friend._id} src={friend.profilePicture} size={36} showOnline isOnline />
+                <ClickableAvatar userId={friend._id} src={friend.profilePicture} name={friend.name} size={36} showOnline isOnline />
                 <span style={styles.onlineDot} />
               </div>
-              <Link to={`/profile/${friend._id}`} style={styles.rsContactName}>
+              <div style={styles.rsContactName}>
                 {friend.name}
-              </Link>
+              </div>
             </div>
           ))}
           {onlineFriends.length === 0 && (
@@ -537,6 +675,7 @@ const NewsFeed = () => {
         </aside>
       </div>
 
+      {/* Comment Modal */}
       <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)} centered size="lg">
         <Modal.Header closeButton style={styles.modalHeader}>
           <Modal.Title style={{ fontSize: 20, fontWeight: 700 }}>
@@ -566,7 +705,7 @@ const NewsFeed = () => {
           </div>
           <div style={{ padding: '0 16px' }}>
             <InputGroup>
-              <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={32} />
+              <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={32} />
               <Form.Control
                 placeholder="Write a comment‚Ä¶"
                 value={commentText}
@@ -585,13 +724,14 @@ const NewsFeed = () => {
         </Modal.Body>
       </Modal>
 
+      {/* Share Modal */}
       <Modal show={showShareModal} onHide={() => setShowShareModal(false)} centered>
         <Modal.Header closeButton style={styles.modalHeader}>
           <Modal.Title style={{ fontSize: 20, fontWeight: 700 }}>Share post</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
             <div>
               <strong>{user?.name}</strong>
               <div style={{ fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -623,239 +763,91 @@ const NewsFeed = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Media Preview Modal */}
+      <Modal show={showMediaModal} onHide={() => setShowMediaModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Media</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ textAlign: 'center' }}>
+          {mediaPreview && (
+            mediaType === 'video' ? (
+              <video src={mediaPreview} controls style={{ maxWidth: '100%', maxHeight: '400px' }} />
+            ) : (
+              <img src={mediaPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '400px' }} />
+            )
+          )}
+          <Form.Group className="mt-3">
+            <Form.Label>Add caption (optional)</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={2}
+              placeholder="Write something about your photo/video..."
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowMediaModal(false)}>Cancel</Button>
+          <Button variant="warning" onClick={handleCreatePost} disabled={posting}>
+            {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
 
 const styles = {
-  page: {
-    background: '#f0f2f5',
-    minHeight: '100vh',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-  },
-  loadingWrap: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', height: '100vh', background: '#f0f2f5',
-  },
-  loadingLogo: {
-    width: 60, height: 60, borderRadius: '50%', background: KL_BRAND,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#fff', fontWeight: 900, fontSize: 24, fontStyle: 'italic',
-  },
-  nav: {
-    position: 'fixed', top: 0, left: 0, right: 0, height: 56,
-    background: '#fff', borderBottom: '1px solid #dddfe2',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0 16px', zIndex: 200,
-    boxShadow: '0 2px 4px rgba(0,0,0,.08)',
-  },
-  navLeft: { display: 'flex', alignItems: 'center', gap: 8 },
-  navCenter: { display: 'flex', gap: 4 },
-  navRight: { display: 'flex', alignItems: 'center', gap: 8 },
-  logoBox: {
-    width: 40, height: 40, borderRadius: '50%',
-    background: KL_BRAND,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    textDecoration: 'none',
-  },
-  logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' },
-  searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
-  searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 },
-  searchInput: {
-    background: '#f0f2f5', border: 'none', borderRadius: 20,
-    padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none',
-    width: 240, color: '#050505',
-  },
-  navTab: {
-    width: 100, height: 48, border: 'none', background: 'transparent',
-    borderRadius: 10, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    position: 'relative',
-  },
-  navTabActive: { background: KL_BRAND_LIGHT },
-  navTabLine: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
-    background: KL_BRAND, borderRadius: '2px 2px 0 0',
-  },
-  navIconBtn: {
-    position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-  },
-  navIconInner: {
-    width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  badge: {
-    position: 'absolute', top: 0, right: 0,
-    background: '#e41e3f', color: '#fff', borderRadius: 10,
-    fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center',
-  },
-  body: {
-    display: 'flex', paddingTop: 56,
-    maxWidth: 1440, margin: '0 auto',
-  },
-  leftSidebar: {
-    width: 280, flexShrink: 0,
-    padding: '12px 8px',
-    position: 'sticky', top: 56, height: 'calc(100vh - 56px)',
-    overflowY: 'auto',
-  },
-  sidebarProfileLink: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '8px 8px', borderRadius: 8,
-    textDecoration: 'none', color: '#050505',
-    fontWeight: 500, fontSize: 15,
-  },
-  sidebarNavItem: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '8px 8px', borderRadius: 8,
-    border: 'none', background: 'transparent',
-    cursor: 'pointer', width: '100%',
-    fontWeight: 500, fontSize: 15, color: '#050505',
-    textAlign: 'left',
-  },
-  sidebarIconWrap: {
-    width: 36, height: 36, borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-  sidebarLinkText: { fontSize: 15, fontWeight: 500, color: '#050505' },
-  seeMoreBtn: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: 8, borderRadius: 8, border: 'none', background: 'transparent',
-    cursor: 'pointer', width: '100%', fontSize: 15, fontWeight: 500, color: '#050505',
-  },
-  seeMoreIcon: {
-    width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '8px 0' },
-  sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
-  sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 },
-  feedCol: {
-    flex: 1, maxWidth: 590, margin: '0 auto', padding: '16px 8px',
-    minWidth: 0,
-  },
-  card: {
-    background: '#fff', borderRadius: 8,
-    boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-    marginBottom: 16, overflow: 'hidden',
-  },
-  cardDivider: { borderTop: '1px solid #dddfe2', margin: 0 },
-  createPostTop: {
-    display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px',
-  },
-  createPostInput: {
-    flex: 1, background: '#f0f2f5', borderRadius: 20, padding: '8px 16px', cursor: 'text',
-  },
-  createTextarea: {
-    background: 'transparent', border: 'none', outline: 'none',
-    width: '100%', resize: 'none', fontSize: 17, color: '#050505',
-    fontFamily: 'inherit', lineHeight: 1.4,
-  },
-  createPostActions: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 12px',
-  },
-  cpActionBtn: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    padding: '6px 12px', borderRadius: 8, border: 'none', background: 'transparent',
-    cursor: 'pointer', fontSize: 15,
-  },
-  postBtn: {
-    background: KL_BRAND, color: '#fff', border: 'none',
-    borderRadius: 6, padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontSize: 15,
-  },
-  postHeader: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-    padding: '12px 16px 0',
-  },
-  postAuthorRow: { display: 'flex', alignItems: 'center' },
-  postAuthorName: {
-    fontWeight: 600, fontSize: 15, color: '#050505', textDecoration: 'none', display: 'block',
-  },
-  postMeta: { fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
-  moreBtn: {
-    width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent',
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  postContent: { padding: '10px 16px 12px', fontSize: 15, lineHeight: 1.5, color: '#050505' },
-  postMedia: {
-    maxHeight: 500, overflow: 'hidden',
-    display: 'flex', justifyContent: 'center', background: '#1a1a1a',
-  },
-  postMediaEl: { maxHeight: 500, width: '100%', objectFit: 'contain' },
-  postStats: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '8px 16px', borderBottom: '1px solid #dddfe2',
-  },
-  statsLeft: { display: 'flex', alignItems: 'center', gap: 4 },
-  statsCount: { fontSize: 15, color: '#65676b' },
-  statsRight: { display: 'flex', gap: 0 },
-  statsLink: { fontSize: 15, color: '#65676b', cursor: 'pointer' },
-  reactionCircle: {
-    width: 20, height: 20, borderRadius: '50%',
-    background: '#1877f2', border: '2px solid #fff',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 11,
-  },
-  postActions: {
-    display: 'flex', padding: '4px 8px',
-  },
-  postActionBtn: {
-    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    padding: '6px 0', borderRadius: 4, border: 'none', background: 'transparent',
-    cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b',
-  },
-  reactionPopup: {
-    position: 'absolute', bottom: 'calc(100% + 4px)', left: 0,
-    background: '#fff', borderRadius: 40,
-    boxShadow: '0 2px 12px rgba(0,0,0,.2)',
-    display: 'flex', padding: '6px 8px', gap: 4, zIndex: 300,
-  },
-  reactionOption: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: '6px', borderRadius: '50%',
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    transition: 'transform .12s',
-    position: 'relative',
-  },
-  reactionLabel: {
-    position: 'absolute', bottom: '100%', left: '50%',
-    transform: 'translateX(-50%)',
-    background: 'rgba(0,0,0,.75)', color: '#fff',
-    fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 6px',
-    whiteSpace: 'nowrap', marginBottom: 4,
-  },
-  commentItem: { display: 'flex', gap: 8, marginBottom: 12 },
-  commentBubble: {
-    background: '#f0f2f5', borderRadius: 18, padding: '8px 12px', flex: 1,
-  },
-  commentTime: { fontSize: 12, color: '#65676b' },
-  sharePreview: {
-    border: '1px solid #dddfe2', borderRadius: 8, padding: '10px 12px', marginTop: 12,
-  },
-  rightSidebar: {
-    width: 280, flexShrink: 0, padding: '12px 8px',
-    position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto',
-  },
-  rsSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '4px 8px', marginBottom: 8 },
-  rsUserRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid #f0f2f5' },
-  rsUserInfo: { flex: 1, minWidth: 0 },
-  rsUserName: { fontSize: 14, fontWeight: 600, color: '#050505', textDecoration: 'none', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  rsUserMeta: { fontSize: 12, color: '#65676b' },
-  rsContactRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px', borderRadius: 8, cursor: 'pointer', position: 'relative' },
-  rsContactName: { fontSize: 15, color: '#050505', textDecoration: 'none', fontWeight: 400 },
-  rsEmpty: { fontSize: 14, color: '#65676b', textAlign: 'center', padding: '12px 0' },
-  rsFooter: { fontSize: 12, color: '#65676b', padding: '8px', textAlign: 'center' },
-  onlineDot: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 12, height: 12, background: '#31a24c',
-    borderRadius: '50%', border: '2px solid #fff',
-  },
-  emptyFeed: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    padding: 48, background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-  },
-  modalHeader: { borderBottom: '1px solid #dddfe2' },
+  page: { background: '#f0f2f5', minHeight: '100vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
+  loadingWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f0f2f5' },
+  loadingLogo: { width: 60, height: 60, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24, fontStyle: 'italic' },
+  nav: { position: 'fixed', top: 0, left: 0, right: 0, height: 56, background: '#fff', borderBottom: '1px solid #dddfe2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 200, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
+  navLeft: { display: 'flex', alignItems: 'center', gap: 8 }, navCenter: { display: 'flex', gap: 4 }, navRight: { display: 'flex', alignItems: 'center', gap: 8 },
+  logoBox: { width: 40, height: 40, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
+  logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' }, searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
+  searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 }, searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240, color: '#050505' },
+  navTab: { width: 100, height: 48, border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  navTabActive: { background: KL_BRAND_LIGHT }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: KL_BRAND, borderRadius: '2px 2px 0 0' },
+  navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
+  body: { display: 'flex', paddingTop: 56, maxWidth: 1440, margin: '0 auto' }, leftSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
+  sidebarProfileLink: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', color: '#050505', fontWeight: 500, fontSize: 15 },
+  sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontWeight: 500, fontSize: 15, color: '#050505', textAlign: 'left' },
+  sidebarIconWrap: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, sidebarLinkText: { fontSize: 15, fontWeight: 500, color: '#050505' },
+  seeMoreBtn: { display: 'flex', alignItems: 'center', gap: 12, padding: 8, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 15, fontWeight: 500, color: '#050505' },
+  seeMoreIcon: { width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '8px 0' }, sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
+  sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 }, feedCol: { flex: 1, maxWidth: 590, margin: '0 auto', padding: '16px 8px', minWidth: 0 },
+  card: { background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)', marginBottom: 16, overflow: 'hidden' }, cardDivider: { borderTop: '1px solid #dddfe2', margin: 0 },
+  createPostTop: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px' }, createPostInput: { flex: 1, background: '#f0f2f5', borderRadius: 20, padding: '8px 16px', cursor: 'text' },
+  createTextarea: { background: 'transparent', border: 'none', outline: 'none', width: '100%', resize: 'none', fontSize: 17, color: '#050505', fontFamily: 'inherit', lineHeight: 1.4 },
+  createPostActions: { display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 12px' }, cpActionBtn: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 15 },
+  postBtn: { background: KL_BRAND, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontSize: 15 },
+  mediaPreviewContainer: { padding: '12px 16px', borderBottom: '1px solid #dddfe2' }, mediaPreviewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  removeMediaBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#65676b' }, mediaPreview: { maxWidth: '100%', maxHeight: 200, borderRadius: 8 },
+  uploadProgress: { margin: '8px 16px 12px' },
+  postHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px 0' }, postAuthorRow: { display: 'flex', alignItems: 'center' },
+  postAuthorName: { fontWeight: 600, fontSize: 15, color: '#050505' }, postMeta: { fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
+  moreBtn: { width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  postContent: { padding: '10px 16px 12px', fontSize: 15, lineHeight: 1.5, color: '#050505' }, postMedia: { maxHeight: 500, overflow: 'hidden', display: 'flex', justifyContent: 'center', background: '#1a1a1a' },
+  postMediaEl: { maxHeight: 500, width: '100%', objectFit: 'contain' }, postStats: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid #dddfe2' },
+  statsLeft: { display: 'flex', alignItems: 'center', gap: 4 }, statsCount: { fontSize: 15, color: '#65676b' }, statsRight: { display: 'flex', gap: 0 }, statsLink: { fontSize: 15, color: '#65676b', cursor: 'pointer' },
+  reactionCircle: { width: 20, height: 20, borderRadius: '50%', background: '#1877f2', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 },
+  postActions: { display: 'flex', padding: '4px 8px' }, postActionBtn: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 0', borderRadius: 4, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b' },
+  reactionPopup: { position: 'absolute', bottom: 'calc(100% + 4px)', left: 0, background: '#fff', borderRadius: 40, boxShadow: '0 2px 12px rgba(0,0,0,.2)', display: 'flex', padding: '6px 8px', gap: 4, zIndex: 300 },
+  reactionOption: { background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform .12s', position: 'relative' },
+  reactionLabel: { position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,.75)', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap', marginBottom: 4 },
+  commentItem: { display: 'flex', gap: 8, marginBottom: 12 }, commentBubble: { background: '#f0f2f5', borderRadius: 18, padding: '8px 12px', flex: 1 }, commentTime: { fontSize: 12, color: '#65676b' },
+  sharePreview: { border: '1px solid #dddfe2', borderRadius: 8, padding: '10px 12px', marginTop: 12 },
+  rightSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
+  rsSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '4px 8px', marginBottom: 8 }, rsUserRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid #f0f2f5' },
+  rsUserInfo: { flex: 1, minWidth: 0 }, rsUserName: { fontSize: 14, fontWeight: 600, color: '#050505' },
+  rsUserMeta: { fontSize: 12, color: '#65676b' }, rsContactRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px', borderRadius: 8, cursor: 'pointer', position: 'relative' },
+  rsContactName: { fontSize: 15, color: '#050505' }, rsEmpty: { fontSize: 14, color: '#65676b', textAlign: 'center', padding: '12px 0' },
+  rsFooter: { fontSize: 12, color: '#65676b', padding: '8px', textAlign: 'center' }, onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, background: '#31a24c', borderRadius: '50%', border: '2px solid #fff' },
+  emptyFeed: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 48, background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)' }, modalHeader: { borderBottom: '1px solid #dddfe2' },
 };
 
 export default NewsFeed;

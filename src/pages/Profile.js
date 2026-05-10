@@ -316,7 +316,7 @@ const Profile = () => {
             </div>
             <span style={styles.badge}>3</span>
           </button>
-          <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+          <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
         </div>
       </nav>
 
@@ -324,7 +324,7 @@ const Profile = () => {
         {/* Left Sidebar */}
         <aside style={styles.leftSidebar}>
           <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={36} />
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={36} />
             <span style={styles.sidebarLinkText}>{user?.name || 'User'}</span>
           </Link>
 
@@ -661,7 +661,7 @@ const Profile = () => {
         </Modal.Header>
         <Modal.Body style={styles.modalBody}>
           <div style={styles.modalPostHeader}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={40} />
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
             <div>
               <strong>{user?.name}</strong>
               <Badge bg="secondary" style={styles.publicBadge}><FaGlobe /> Public</Badge>
@@ -714,7 +714,7 @@ const Profile = () => {
             )}
           </div>
           <div style={styles.commentInputWrapper}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} size={32} />
+            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={32} />
             <input 
               type="text" 
               placeholder="Write a comment..." 

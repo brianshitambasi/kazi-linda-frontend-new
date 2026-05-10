@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { jobAPI, applicationAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Container, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { Button, Spinner, Alert, Badge } from 'react-bootstrap';
 import { FaMapMarkerAlt, FaMoneyBillWave, FaBuilding, FaCheckCircle, FaArrowLeft, FaClock, FaShieldAlt, FaHome, FaSearch, FaBell, FaFacebookMessenger, FaEllipsisH, FaUsers, FaBriefcase } from 'react-icons/fa';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ const KL_BRAND_LIGHT = '#fef9e7';
 const JobDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);

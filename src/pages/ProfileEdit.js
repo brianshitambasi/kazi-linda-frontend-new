@@ -4,8 +4,9 @@ import { Button, Spinner, Form, Badge } from 'react-bootstrap';
 import { 
   FaUserCircle, FaSave, FaTimes, FaArrowLeft, FaHome,
   FaBell, FaFacebookMessenger, FaEllipsisH, FaSearch,
-  FaUserFriends, FaBriefcase, FaUsers, FaGlobe, FaEnvelope,
-  FaCamera, FaCheckCircle, FaEdit, FaTwitter, FaLinkedin
+  FaBriefcase, FaUsers, FaGlobe, FaEnvelope,
+// eslint-disable-next-line no-unused-vars
+  FaCheckCircle, FaEdit, FaLinkedin
 } from 'react-icons/fa';
 import { profileAPI } from '../services/api';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';

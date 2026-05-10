@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { jobAPI } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { Container, Row, Col, Card, Button, Spinner, Badge, Form, InputGroup } from 'react-bootstrap';
+import React, { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { jobAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+// eslint-disable-next-line no-unused-vars
+import { Container, Row, Card, Button, Spinner, Badge, Form } from "react-bootstrap";
 import { 
-  FaMapMarkerAlt, FaMoneyBillWave, FaBuilding, FaSearch, FaFilter, 
+  FaMapMarkerAlt, FaMoneyBillWave, FaSearch, 
   FaHome, FaBell, FaFacebookMessenger, FaEllipsisH, FaUsers, 
   FaShieldAlt, FaBriefcase  // ← Added FaBriefcase here
 } from 'react-icons/fa';
@@ -15,7 +16,7 @@ const KL_BRAND = '#f39c12';
 const KL_BRAND_LIGHT = '#fef9e7';
 
 const Jobs = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);

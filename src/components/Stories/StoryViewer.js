@@ -120,7 +120,7 @@ const StoryViewer = ({ stories, onClose }) => {
         .story-user { display: flex; align-items: center; gap: 12px; }
         .story-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #f39c12; object-fit: cover; }
         .story-actions { display: flex; gap: 16px; }
-        .story-reaction, .story-close { background: rgba(0,0,0,0.5); border: none; color: white; font-size: 20px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justifyContent: center; cursor: pointer; transition: transform 0.2s; }
+        .story-reaction, .story-close { background: rgba(0,0,0,0.5); border: none; color: white; font-size: 20px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
         .story-reaction:hover, .story-close:hover { transform: scale(1.1); background: rgba(0,0,0,0.7); }
         .story-content { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .story-media { max-width: 100%; max-height: 90vh; object-fit: contain; }

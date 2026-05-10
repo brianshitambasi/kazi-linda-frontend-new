@@ -164,7 +164,7 @@ const Navbar = () => {
                 onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); }}
               >
                 {user.profilePicture ? (
-                  <ClickableAvatar userId={user._id} src={user.profilePicture} size={36} showOnline isOnline={user.isOnline} />
+                  <ClickableAvatar userId={user._id} src={user.profilePicture} name={user.name} size={36} showOnline isOnline={user.isOnline} />
                 ) : (
                   <div style={s.avatarInitials}>{userInitials}</div>
                 )}
@@ -177,7 +177,7 @@ const Navbar = () => {
                   {/* Mini profile card */}
                   <div style={s.dropdownProfileCard}>
                     {user.profilePicture ? (
-                      <ClickableAvatar userId={user._id} src={user.profilePicture} size={48} />
+                      <ClickableAvatar userId={user._id} src={user.profilePicture} name={user.name} size={48} />
                     ) : (
                       <div style={{ ...s.avatarInitials, width: 48, height: 48, fontSize: 18 }}>{userInitials}</div>
                     )}

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { applicationAPI } from '../services/api';
-import { Container, Card, Button, Spinner, Badge } from 'react-bootstrap';
+import {Button, Spinner, Badge } from 'react-bootstrap';
 import { 
   FaBriefcase, FaMapMarkerAlt, FaCheckCircle, FaHourglassHalf, 
   FaTimesCircle, FaEye, FaHome, FaSearch, FaBell, FaFacebookMessenger, 
@@ -15,7 +15,7 @@ const KL_BRAND = '#f39c12';
 const KL_BRAND_LIGHT = '#fef9e7';
 
 const Applications = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('applications');

@@ -4,8 +4,8 @@ import { Spinner, Badge } from 'react-bootstrap';
 import { 
   FaExclamationTriangle, FaMapMarkerAlt, FaCalendar, FaBuilding, 
   FaFlag, FaCheckCircle, FaShieldAlt, FaHome, FaSearch, FaBell, 
-  FaFacebookMessenger, FaEllipsisH, FaUserFriends, FaBriefcase, 
-  FaUsers, FaBan, FaClock, FaEnvelope, FaPhoneAlt, FaFileAlt
+  FaFacebookMessenger, FaEllipsisH, FaBriefcase, 
+  FaUsers, FaBan, FaEnvelope, FaPhoneAlt, FaFileAlt
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
