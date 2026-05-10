@@ -2,7 +2,16 @@ import React from 'react';
 import { Image } from 'react-bootstrap';
 import { FaUserCircle } from 'react-icons/fa';
 
-const Avatar = ({ src, size = 40, className = '', onClick }) => {
+const KL_BRAND = '#f39c12';
+
+const Avatar = ({ src, size = 40, className = '', onClick, style = {} }) => {
+  const avatarStyles = {
+    objectFit: 'cover',
+    cursor: onClick ? 'pointer' : 'default',
+    transition: 'transform 0.2s ease',
+    ...style
+  };
+
   if (src) {
     return (
       <Image
@@ -10,9 +19,15 @@ const Avatar = ({ src, size = 40, className = '', onClick }) => {
         roundedCircle
         width={size}
         height={size}
-        className={`object-fit-cover ${className}`}
-        style={{ objectFit: 'cover' }}
+        className={className}
+        style={avatarStyles}
         onClick={onClick}
+        onMouseEnter={(e) => {
+          if (onClick) e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+        onMouseLeave={(e) => {
+          if (onClick) e.currentTarget.style.transform = 'scale(1)';
+        }}
       />
     );
   }
@@ -21,8 +36,19 @@ const Avatar = ({ src, size = 40, className = '', onClick }) => {
     <FaUserCircle 
       size={size} 
       className={`text-secondary ${className}`}
+      style={{
+        cursor: onClick ? 'pointer' : 'default',
+        color: '#bcc0c4',
+        transition: 'transform 0.2s ease',
+        ...style
+      }}
       onClick={onClick}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      onMouseEnter={(e) => {
+        if (onClick) e.currentTarget.style.transform = 'scale(1.05)';
+      }}
+      onMouseLeave={(e) => {
+        if (onClick) e.currentTarget.style.transform = 'scale(1)';
+      }}
     />
   );
 };

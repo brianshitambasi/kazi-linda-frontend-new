@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Spinner } from 'react-bootstrap';
+import { Spinner } from 'react-bootstrap';
 import { FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-const FollowButton = ({ userId, isFollowingProp, onFollowChange, token }) => {
+const KL_BRAND = '#f39c12';
+
+const FollowButton = ({ userId, isFollowingProp, onFollowChange, token, size = 'sm' }) => {
   const [loading, setLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(isFollowingProp || false);
 
@@ -63,22 +65,62 @@ const FollowButton = ({ userId, isFollowingProp, onFollowChange, token }) => {
     }
   };
 
+  const followButtonStyle = {
+    background: KL_BRAND,
+    border: 'none',
+    borderRadius: '6px',
+    padding: size === 'sm' ? '6px 12px' : '8px 16px',
+    fontSize: size === 'sm' ? '13px' : '14px',
+    fontWeight: 500,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+  };
+
+  const followingButtonStyle = {
+    background: 'transparent',
+    border: `1px solid ${KL_BRAND}`,
+    color: KL_BRAND,
+    borderRadius: '6px',
+    padding: size === 'sm' ? '6px 12px' : '8px 16px',
+    fontSize: size === 'sm' ? '13px' : '14px',
+    fontWeight: 500,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+  };
+
+  const loadingStyle = {
+    background: '#e4e6eb',
+    border: 'none',
+    borderRadius: '6px',
+    padding: size === 'sm' ? '6px 12px' : '8px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'not-allowed',
+  };
+
   if (loading) {
     return (
-      <Button variant="secondary" size="sm" disabled className="d-flex align-items-center gap-2">
-        <Spinner animation="border" size="sm" />
-      </Button>
+      <button style={loadingStyle} disabled>
+        <Spinner animation="border" size="sm" style={{ color: KL_BRAND, width: '14px', height: '14px' }} />
+      </button>
     );
   }
 
   return isFollowing ? (
-    <Button variant="outline-secondary" size="sm" onClick={handleUnfollow} className="d-flex align-items-center gap-1">
-      <FaUserCheck /> Following
-    </Button>
+    <button style={followingButtonStyle} onClick={handleUnfollow}>
+      <FaUserCheck size={14} /> Following
+    </button>
   ) : (
-    <Button variant="primary" size="sm" onClick={handleFollow} className="d-flex align-items-center gap-1">
-      <FaUserPlus /> Follow
-    </Button>
+    <button style={followButtonStyle} onClick={handleFollow}>
+      <FaUserPlus size={14} /> Follow
+    </button>
   );
 };
 

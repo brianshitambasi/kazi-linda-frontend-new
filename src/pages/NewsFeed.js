@@ -3,7 +3,7 @@ import { Spinner, Modal, Form, InputGroup, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 import FollowButton from '../components/Common/FollowButton';
-import StoriesBar from '../components/Stories/StoriesBar';
+import StoriesRing from '../components/Stories/StoriesRing';
 import {
   FaHeart, FaComment, FaShare, FaSmile, FaImage,
   FaEllipsisH, FaGlobe, FaPaperPlane, FaThumbsUp, FaLaughBeam,
@@ -312,7 +312,7 @@ const NewsFeed = () => {
         </aside>
 
         <main style={styles.feedCol}>
-          <StoriesBar />
+          <StoriesRing />
 
           <div style={styles.card}>
             <div style={styles.createPostTop}>
