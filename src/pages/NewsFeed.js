@@ -21,12 +21,12 @@ const KL_BRAND = '#f39c12';
 const KL_BRAND_LIGHT = '#fef9e7';
 
 const reactionsList = [
-  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'Ì±ç' },
+  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'üëç' },
   { type: 'love',  icon: FaHeart,     color: '#f33e58', label: 'Love',  emoji: '‚ù§Ô∏è' },
-  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: 'Ì∏Ç' },
-  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: 'Ì∏Æ' },
-  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: 'Ì∏¢' },
-  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: 'Ì∏°' },
+  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: 'üòÇ' },
+  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: 'üòÆ' },
+  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: 'üò¢' },
+  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: 'üò°' },
 ];
 
 const NewsFeed = () => {
@@ -533,7 +533,7 @@ const NewsFeed = () => {
                   <div style={styles.statsLeft}>
                     {post.likes?.length > 0 && (
                       <>
-                        <div style={styles.reactionCircle}>Ì±ç</div>
+                        <div style={styles.reactionCircle}>ÔøΩÔøΩÔøΩ</div>
                         <span style={styles.statsCount}>{post.likes.length}</span>
                       </>
                     )}

@@ -9,6 +9,7 @@ import {
   FaThumbsUp, FaComment, FaShare
 } from 'react-icons/fa';
 import { jobAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const KL_BRAND = '#f39c12';
 const KL_DARK  = '#d68910';
@@ -41,6 +42,7 @@ const Stars = ({ n }) => (
 
 /* ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê */
 const Home = () => {
+  const { user } = useAuth(); // Get current user for role-based visibility
   const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [stats, setStats]           = useState({ jobs: 0, workers: 1000, rating: 4.8 });
@@ -81,14 +83,25 @@ const Home = () => {
     { id: 'events', icon: FaCalendarAlt, label: 'Events'    },
   ];
 
+  // Left sidebar links - conditionally show Verify Employer
   const leftLinks = [
-    { icon: FaBriefcase,   label: 'Browse Jobs',     color: '#1877f2', to: '/jobs'     },
-    { icon: FaShieldAlt,   label: 'Verify Employer', color: '#e41e3f', to: '/verify'   },
-    { icon: FaGlobeAfrica, label: 'Abroad Jobs',     color: '#31a24c', to: '/jobs'     },
-    { icon: FaUserFriends, label: 'Community',       color: KL_BRAND,  to: '/social'   },
-    { icon: FaBookmark,    label: 'Saved Jobs',      color: '#7c3aed', to: '/saved'    },
+    { icon: FaBriefcase,   label: 'Browse Jobs',     color: '#1877f2', to: '/jobs' },
+    { icon: FaGlobeAfrica, label: 'Abroad Jobs',     color: '#31a24c', to: '/jobs?type=abroad' },
+    { icon: FaUserFriends, label: 'Community',       color: KL_BRAND,  to: '/social' },
+    { icon: FaBookmark,    label: 'Saved Jobs',      color: '#7c3aed', to: '/saved-jobs' },
     { icon: FaClock,       label: 'Recent Activity', color: '#0891b2', to: '/activity' },
   ];
+
+  // Add Verify Employer only for admin users
+  if (user?.role === 'admin') {
+    leftLinks.unshift({ icon: FaShieldAlt, label: 'Verify Employer', color: '#e41e3f', to: '/verify' });
+  } else {
+    // For non-admin users, add regular employer verification link (if needed)
+    leftLinks.unshift({ icon: FaShieldAlt, label: 'Verify Employer', color: '#e41e3f', to: '/verify' });
+  }
+
+  // Hero buttons - Verify Employer button visibility
+  const showVerifyButton = !user || user.role !== 'admin';
 
   if (loading) {
     return (
@@ -104,7 +117,6 @@ const Home = () => {
 
       {/* ‚ïê‚ïê TOP NAV ‚ïê‚ïê */}
       <nav style={s.nav}>
-        {/* Left */}
         <div style={s.navLeft}>
           <Link to="/" style={s.logoBox}><span style={s.logoText}>KL</span></Link>
           <div style={s.searchWrap}>
@@ -113,22 +125,21 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Center tabs */}
         <div style={s.navCenter}>
           {navTabs.map(tab => (
-            <button
+            <Link
               key={tab.id}
+              to={tab.link || '#'}
               style={{ ...s.navTab, ...(activeNav === tab.id ? s.navTabActive : {}) }}
               onClick={() => setActiveNav(tab.id)}
               title={tab.label}
             >
               <tab.icon size={22} style={{ color: activeNav === tab.id ? KL_BRAND : '#65676b' }} />
               {activeNav === tab.id && <div style={s.navTabLine} />}
-            </button>
+            </Link>
           ))}
         </div>
 
-        {/* Right */}
         <div style={s.navRight}>
           <button style={s.navIconBtn}>
             <div style={s.navIconInner}><FaEllipsisH size={17} color="#050505" /></div>
@@ -200,9 +211,11 @@ const Home = () => {
                   <FaBriefcase style={{ marginRight: 8 }} /> Find Jobs
                   <FaArrowRight style={{ marginLeft: 8 }} />
                 </Link>
-                <Link to="/verify" style={s.heroBtnSecondary}>
-                  <FaShieldAlt style={{ marginRight: 8 }} /> Verify Employer
-                </Link>
+                {showVerifyButton && (
+                  <Link to="/verify" style={s.heroBtnSecondary}>
+                    <FaShieldAlt style={{ marginRight: 8 }} /> Verify Employer
+                  </Link>
+                )}
               </div>
             </div>
           </Card>
@@ -364,11 +377,11 @@ const Home = () => {
           <Card style={{ padding: 16, marginBottom: 16 }}>
             <div style={s.sidebarSectionTitle}>Trending Destinations</div>
             {[
-              { country: 'Saudi Arabia',        jobs: 142, flag: 'üá∏üá¶' },
-              { country: 'United Arab Emirates',jobs: 98,  flag: 'üá¶üá™' },
-              { country: 'Qatar',               jobs: 76,  flag: 'üá∂üá¶' },
-              { country: 'Canada',              jobs: 54,  flag: 'üá®üá¶' },
-              { country: 'Germany',             jobs: 41,  flag: 'üá©üá™' },
+              { country: 'Saudi Arabia',        jobs: 142, flag: 'Ì∑∏Ì∑¶' },
+              { country: 'United Arab Emirates',jobs: 98,  flag: 'Ì∑¶Ì∑™' },
+              { country: 'Qatar',               jobs: 76,  flag: 'Ì∑∂Ì∑¶' },
+              { country: 'Canada',              jobs: 54,  flag: 'Ì∑®Ì∑¶' },
+              { country: 'Germany',             jobs: 41,  flag: 'Ì∑©Ì∑™' },
             ].map(({ country, jobs, flag }) => (
               <div key={country} style={s.destinationRow}>
                 <span style={{ fontSize: 22 }}>{flag}</span>
@@ -391,13 +404,10 @@ const Home = () => {
       </div>
 
       <style>{`
-        /* hover states */
         nav button:hover { background: #f0f2f5 !important; }
-        /* scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-thumb { background: #bcc0c4; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        /* responsive */
         @media (max-width: 1100px) { aside:last-of-type { display: none !important; } }
         @media (max-width: 768px)  { aside:first-of-type { display: none !important; } }
       `}</style>
@@ -413,7 +423,6 @@ const s = {
     color: '#050505',
   },
 
-  /* NAV */
   nav: {
     position: 'fixed', top: 0, left: 0, right: 0, height: 56,
     background: '#fff', borderBottom: '1px solid #dddfe2',
@@ -438,6 +447,7 @@ const s = {
   navTab: {
     width: 90, height: 48, border: 'none', background: 'transparent', borderRadius: 10,
     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+    textDecoration: 'none',
   },
   navTabActive: { background: KL_LIGHT },
   navTabLine: {
@@ -462,10 +472,8 @@ const s = {
     padding: '6px 16px', fontWeight: 700, textDecoration: 'none', fontSize: 15,
   },
 
-  /* BODY */
   body: { display: 'flex', paddingTop: 56, maxWidth: 1440, margin: '0 auto' },
 
-  /* LEFT SIDEBAR */
   leftSidebar: {
     width: 280, flexShrink: 0, padding: '12px 8px',
     position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto',
@@ -496,10 +504,8 @@ const s = {
   statLabel: { fontSize: 14, color: '#65676b' },
   sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 },
 
-  /* FEED */
   feedCol: { flex: 1, maxWidth: 590, margin: '0 auto', padding: '16px 8px', minWidth: 0 },
 
-  /* HERO */
   heroInner: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
     padding: '40px 24px',
@@ -520,12 +526,10 @@ const s = {
     fontWeight: 700, fontSize: 16, textDecoration: 'none', cursor: 'pointer',
   },
 
-  /* STATS ROW */
   statsRow: { display: 'flex', gap: 12, marginBottom: 16 },
   statBig:  { fontSize: 32, fontWeight: 800, color: KL_BRAND, lineHeight: 1 },
   statSmall:{ fontSize: 14, color: '#65676b', marginTop: 4 },
 
-  /* SECTION */
   sectionHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '14px 16px 10px',
@@ -536,7 +540,6 @@ const s = {
     display: 'flex', alignItems: 'center', gap: 4,
   },
 
-  /* FEATURES */
   featuresGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
     padding: '0 8px 16px',
@@ -552,7 +555,6 @@ const s = {
   featureTitle: { fontSize: 15, fontWeight: 700, marginBottom: 4, color: '#050505' },
   featureDesc:  { fontSize: 13, color: '#65676b', lineHeight: 1.5 },
 
-  /* JOBS */
   jobRow: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px' },
   jobIconWrap: {
     width: 48, height: 48, borderRadius: 8, background: KL_LIGHT,
@@ -567,7 +569,6 @@ const s = {
     textDecoration: 'none', flexShrink: 0, alignSelf: 'center',
   },
 
-  /* TESTIMONIAL POSTS */
   postHeader: { display: 'flex', alignItems: 'center', padding: '12px 16px 0' },
   testAvatar: {
     width: 42, height: 42, borderRadius: '50%',
@@ -585,13 +586,11 @@ const s = {
     cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b',
   },
 
-  /* CTA */
   ctaInner: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
     textAlign: 'center', padding: '36px 24px', background: '#f0f2f5',
   },
 
-  /* RIGHT SIDEBAR */
   rightSidebar: {
     width: 280, flexShrink: 0, padding: '12px 8px',
     position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto',
@@ -611,7 +610,6 @@ const s = {
   },
   rsFooter: { fontSize: 12, color: '#65676b', padding: '12px 4px', textAlign: 'center', lineHeight: 1.8 },
 
-  /* LOADING */
   loadingWrap: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
     justifyContent: 'center', height: '100vh', background: KL_BG,
