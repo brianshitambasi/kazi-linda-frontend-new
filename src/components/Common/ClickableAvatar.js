@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { FaUserCircle } from 'react-icons/fa';
 
 const ClickableAvatar = ({ 
   userId, 
@@ -10,10 +10,11 @@ const ClickableAvatar = ({
   showOnline = false, 
   isOnline = false, 
   style = {}, 
-  onClick 
+  onClick,
+  asLink = true 
 }) => {
   const avatarStyles = {
-    cursor: onClick ? 'pointer' : 'default',
+    cursor: onClick ? 'pointer' : (asLink && userId ? 'pointer' : 'default'),
     objectFit: 'cover',
     width: size,
     height: size,
@@ -37,7 +38,9 @@ const ClickableAvatar = ({
       className={className}
       onError={(e) => {
         e.target.style.display = 'none';
-        e.target.nextSibling.style.display = 'flex';
+        if (e.target.nextSibling) {
+          e.target.nextSibling.style.display = 'flex';
+        }
       }}
     />
   ) : (
@@ -66,20 +69,31 @@ const ClickableAvatar = ({
     </div>
   );
 
-  if (onClick || !userId) {
+  // If onClick is provided, just return clickable div
+  if (onClick) {
+    return <div onClick={onClick} style={{ cursor: 'pointer' }}><AvatarWrapper /></div>;
+  }
+
+  // If asLink is false or no userId, just return the avatar
+  if (!asLink || !userId) {
     return <AvatarWrapper />;
   }
 
+  // Use <a> tag directly instead of react-router-dom Link to avoid nesting issues
   return (
-    <Link to={`/profile/${userId}`} style={styles.link}>
+    <a href={`/profile/${userId}`} style={styles.link} onClick={(e) => {
+      e.preventDefault();
+      window.location.href = `/profile/${userId}`;
+    }}>
       <AvatarWrapper />
-    </Link>
+    </a>
   );
 };
 
 const styles = {
   link: {
     textDecoration: 'none',
+    cursor: 'pointer',
   },
   container: {
     position: 'relative',

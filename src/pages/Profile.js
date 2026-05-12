@@ -1,33 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Button, Badge, Spinner, Modal } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Spinner, Modal } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 import FollowButton from '../components/Common/FollowButton';
-import { 
-  FaUserCircle, FaMapMarkerAlt, FaEnvelope, FaEdit, FaCamera, 
-  FaThumbsUp, FaComment, FaShare, FaEllipsisH, FaHeart, FaHome,
-  FaBell, FaFacebookMessenger, FaSearch, FaUsers, FaBriefcase,
-  FaUserFriends, FaBookmark, FaClock, FaGlobe, FaCalendarAlt,
-  FaImage, FaSmile, FaPaperPlane
+import {
+  FaMapMarkerAlt, FaEnvelope, FaEdit, FaCamera, FaThumbsUp, FaComment,
+  FaShare, FaEllipsisH, FaHeart, FaBell, FaSearch, FaUsers,
+  FaBriefcase, FaGlobe, FaUserCircle, FaHome, FaPhone, FaLanguage,
+  FaCalendarAlt, FaFacebookMessenger, FaBriefcase as FaWork
 } from 'react-icons/fa';
-import { profileAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import moment from 'moment';
 
 const KL_BRAND = '#f39c12';
-const KL_BRAND_DARK = '#d68910';  // ← ADD THIS - fixes the error!
-const KL_BRAND_LIGHT = '#fef9e7';
+const KL_LIGHT = '#fef9e7';
+const KL_BG = '#f0f2f5';
 
 const Profile = () => {
   const { userId } = useParams();
   const { user, token } = useAuth();
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
-  const [activeNav, setActiveNav] = useState('profile');
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -35,49 +34,51 @@ const Profile = () => {
   const [followersList, setFollowersList] = useState([]);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [followingList, setFollowingList] = useState([]);
+  const [coverHover, setCoverHover] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [newPost, setNewPost] = useState('');
-  const [posting, setPosting] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [showCommentModal, setShowCommentModal] = useState(false);
-  const [commentText, setCommentText] = useState('');
-
-  const fileInputRef = React.useRef(null);
-
-  const navTabs = [
-    { id: 'home', icon: FaHome, label: 'Home', link: '/' },
-    { id: 'profile', icon: FaUserCircle, label: 'Profile', link: `/profile/${user?._id}` },
-    { id: 'friends', icon: FaUsers, label: 'Friends', link: '/friends' },
-    { id: 'jobs', icon: FaBriefcase, label: 'Jobs', link: '/jobs' },
-  ];
+  const fileInputRef = useRef(null);
 
   const fetchProfile = useCallback(async () => {
     try {
       const id = userId || user?._id;
-      const res = await profileAPI.getPublicProfile(id);
-      setProfile(res.data);
-      setFollowersCount(res.data.followers?.length || 0);
-      setFollowingCount(res.data.following?.length || 0);
+      console.log('Fetching profile for ID:', id);
+      
+      const res = await fetch(`https://kazi-linda.onrender.com/api/profile/public/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      
+      if (!res.ok) throw new Error('Profile not found');
+      const data = await res.json();
+      console.log('Profile data received:', data);
+      
+      setProfile(data);
+      
+      const followers = data.followers || [];
+      const following = data.following || [];
+      setFollowersCount(followers.length);
+      setFollowingCount(following.length);
+      
+      console.log('Followers count:', followers.length, 'Following count:', following.length);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load profile');
+      setProfile(null);
     } finally {
       setLoading(false);
     }
-  }, [userId, user]);
+  }, [userId, user, token]);
 
   const fetchUserPosts = useCallback(async () => {
     setPostsLoading(true);
     try {
       const id = userId || user?._id;
       const res = await fetch(`https://kazi-linda.onrender.com/api/social/user-posts/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error fetching posts:', err);
+      console.error(err);
       setPosts([]);
     } finally {
       setPostsLoading(false);
@@ -88,43 +89,36 @@ const Profile = () => {
     try {
       const id = userId || user?._id;
       const res = await fetch(`https://kazi-linda.onrender.com/api/social/followers/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setFollowersList(data);
       setShowFollowersModal(true);
-    } catch (err) {
-      toast.error('Failed to load followers');
-    }
+    } catch { toast.error('Failed to load followers'); }
   };
 
   const fetchFollowing = async () => {
     try {
       const id = userId || user?._id;
       const res = await fetch(`https://kazi-linda.onrender.com/api/social/following/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setFollowingList(data);
       setShowFollowingModal(true);
-    } catch (err) {
-      toast.error('Failed to load following');
-    }
+    } catch { toast.error('Failed to load following'); }
   };
 
   const updateFollowStatus = useCallback(async () => {
     if (!userId || userId === user?._id) return;
     try {
       const res = await fetch(`https://kazi-linda.onrender.com/api/social/following/check/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setIsFollowing(data.following);
-      await fetchProfile();
-    } catch (err) {
-      console.error(err);
-    }
-  }, [userId, user, token, fetchProfile]);
+    } catch (err) { console.error(err); }
+  }, [userId, user, token]);
 
   useEffect(() => {
     fetchProfile();
@@ -140,55 +134,10 @@ const Profile = () => {
   const handleLike = async (postId) => {
     try {
       await fetch(`https://kazi-linda.onrender.com/api/social/posts/${postId}/like`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       fetchUserPosts();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleCreatePost = async () => {
-    if (!newPost.trim()) {
-      toast.error('Please write something');
-      return;
-    }
-    setPosting(true);
-    try {
-      const res = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newPost }),
-      });
-      if (res.ok) {
-        toast.success('Post shared!');
-        setNewPost('');
-        setShowPostModal(false);
-        fetchUserPosts();
-      }
-    } catch (err) {
-      toast.error('Failed to post');
-    } finally {
-      setPosting(false);
-    }
-  };
-
-  const handleAddComment = async () => {
-    if (!commentText.trim()) return;
-    try {
-      await fetch(`https://kazi-linda.onrender.com/api/social/posts/${selectedPost._id}/comment`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: commentText }),
-      });
-      setCommentText('');
-      setShowCommentModal(false);
-      fetchUserPosts();
-      toast.success('Comment added!');
-    } catch {
-      toast.error('Failed to add comment');
-    }
+    } catch (err) { console.error(err); }
   };
 
   const handleCoverUpload = async (e) => {
@@ -202,19 +151,16 @@ const Profile = () => {
       toast.error('Image must be less than 5MB');
       return;
     }
-    
     setUploadingCover(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', 'kazi_linda_uploads');
-      
       const uploadRes = await fetch('https://api.cloudinary.com/v1_1/denczbmin/image/upload', {
         method: 'POST',
         body: formData
       });
       const cloudinaryData = await uploadRes.json();
-      
       const response = await fetch('https://kazi-linda.onrender.com/api/profile/cover-photo', {
         method: 'POST',
         headers: {
@@ -223,7 +169,6 @@ const Profile = () => {
         },
         body: JSON.stringify({ coverUrl: cloudinaryData.secure_url })
       });
-      
       if (response.ok) {
         toast.success('Cover photo updated!');
         fetchProfile();
@@ -237,19 +182,12 @@ const Profile = () => {
     }
   };
 
-  const leftLinks = [
-    { icon: FaUserFriends, label: 'Friends', count: followersCount, color: KL_BRAND },
-    { icon: FaBookmark, label: 'Saved Posts', color: '#7c3aed' },
-    { icon: FaClock, label: 'Memories', color: KL_BRAND },
-    { icon: FaCalendarAlt, label: 'Events', color: '#e41e3f' },
-  ];
-
   const isOwnProfile = !userId || userId === user?._id;
 
   if (loading) {
     return (
-      <div style={styles.loadingWrap}>
-        <div style={styles.loadingLogo}>KL</div>
+      <div style={s.fullCenter}>
+        <div style={s.loadingLogo}>KL</div>
         <Spinner animation="border" style={{ color: KL_BRAND, marginTop: 16 }} />
       </div>
     );
@@ -257,809 +195,384 @@ const Profile = () => {
 
   if (!profile) {
     return (
-      <div style={styles.page}>
-        <div style={styles.emptyState}>
-          <FaUserCircle size={64} color={KL_BRAND} />
-          <h3>User not found</h3>
-          <Button as={Link} to="/" style={styles.primaryBtn}>Go Home</Button>
-        </div>
+      <div style={s.fullCenter}>
+        <FaUserCircle size={72} color={KL_BRAND} />
+        <h3 style={{ marginTop: 16 }}>User not found</h3>
+        <Link to="/" style={s.primaryBtn}>Go Home</Link>
       </div>
     );
   }
 
-  const totalLikes = posts.reduce((sum, post) => sum + (post.likes?.length || 0), 0);
-  const totalComments = posts.reduce((sum, post) => sum + (post.comments?.length || 0), 0);
+  const displayName = profile.name || 'KaziLinda User';
+  const firstName = displayName.split(' ')[0];
+  const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const roleColor = { worker: '#31a24c', employer: '#1877f2', recruiter: '#7c3aed', embassy: '#e41e3f' }[profile.role] || KL_BRAND;
+
+  const TABS = [
+    { id: 'posts', label: `Posts (${posts.length})` },
+    { id: 'about', label: 'About' },
+    { id: 'friends', label: 'Friends' },
+  ];
 
   return (
-    <div style={styles.page}>
-      {/* Navigation - same as other pages */}
-      <nav style={styles.nav}>
-        <div style={styles.navLeft}>
-          <Link to="/" style={styles.logoBox}>
-            <span style={styles.logoText}>KL</span>
-          </Link>
-          <div style={styles.searchBox}>
-            <FaSearch style={styles.searchIcon} />
-            <input style={styles.searchInput} placeholder="Search KaziLinda..." />
+    <div style={s.page}>
+      {/* NAVBAR */}
+      <nav style={s.nav}>
+        <div style={s.navLeft}>
+          <Link to="/" style={s.logoBox}><span style={s.logoText}>KL</span></Link>
+          <div style={{ position: 'relative' }}>
+            <FaSearch style={s.searchIcon} size={13} />
+            <input style={s.searchInput} placeholder="Search KaziLinda…" />
           </div>
         </div>
-        <div style={styles.navCenter}>
-          {navTabs.map(tab => (
-            <Link
-              key={tab.id}
-              to={tab.link}
-              style={{
-                ...styles.navTab,
-                ...(activeNav === tab.id ? styles.navTabActive : {}),
-              }}
-              onClick={() => setActiveNav(tab.id)}
-            >
-              <tab.icon size={24} style={{ color: activeNav === tab.id ? KL_BRAND : '#65676b' }} />
-              {activeNav === tab.id && <div style={styles.navTabLine} />}
+        <div style={s.navCenter}>
+          {[
+            { to: '/', icon: FaHome, label: 'Home' },
+            { to: `/profile/${user?._id}`, icon: FaUserCircle, label: 'Profile' },
+            { to: '/jobs', icon: FaBriefcase, label: 'Jobs' },
+            { to: '/news', icon: FaUsers, label: 'Feed' },
+          ].map(t => (
+            <Link key={t.to} to={t.to} style={s.navTab} title={t.label}>
+              <t.icon size={22} color="#65676b" />
             </Link>
           ))}
         </div>
-        <div style={styles.navRight}>
-          <button style={styles.navIconBtn}>
-            <div style={styles.navIconInner}>
-              <FaEllipsisH size={18} color="#050505" />
-            </div>
+        <div style={s.navRight}>
+          <button style={s.iconBtn}><div style={s.iconInner}><FaEllipsisH size={17} /></div></button>
+          <button style={s.iconBtn}><div style={s.iconInner}><FaFacebookMessenger size={17} /></div></button>
+          <button style={s.iconBtn}>
+            <div style={s.iconInner}><FaBell size={17} /></div>
+            <span style={s.badge}>3</span>
           </button>
-          <button style={styles.navIconBtn}>
-            <div style={styles.navIconInner}>
-              <FaFacebookMessenger size={18} color="#050505" />
-            </div>
-          </button>
-          <button style={styles.navIconBtn}>
-            <div style={styles.navIconInner}>
-              <FaBell size={18} color="#050505" />
-            </div>
-            <span style={styles.badge}>3</span>
-          </button>
-          <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
+          <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={38} />
         </div>
       </nav>
 
-      <div style={styles.body}>
-        {/* Left Sidebar */}
-        <aside style={styles.leftSidebar}>
-          <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={36} />
-            <span style={styles.sidebarLinkText}>{user?.name || 'User'}</span>
-          </Link>
+      {/* COVER + PROFILE HEADER */}
+      <div style={s.coverWrap}>
+        <div
+          style={s.coverPhoto}
+          onMouseEnter={() => isOwnProfile && setCoverHover(true)}
+          onMouseLeave={() => setCoverHover(false)}
+        >
+          {profile?.coverPhoto ? (
+            <img src={profile.coverPhoto} alt="Cover" style={s.coverImage} />
+          ) : (
+            <div style={s.coverGradient} />
+          )}
+          {isOwnProfile && coverHover && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleCoverUpload}
+                disabled={uploadingCover}
+              />
+              <button style={s.editCoverBtn} onClick={() => fileInputRef.current?.click()} disabled={uploadingCover}>
+                <FaCamera size={14} style={{ marginRight: 6 }} />
+                {uploadingCover ? 'Uploading...' : 'Edit cover photo'}
+              </button>
+            </>
+          )}
+        </div>
 
-          {leftLinks.map(({ icon: Icon, label, count, color }) => (
-            <button key={label} style={styles.sidebarNavItem}>
-              <span style={{ ...styles.sidebarIconWrap, background: color + '22' }}>
-                <Icon size={18} color={color} />
-              </span>
-              <span style={styles.sidebarLinkText}>{label}</span>
-              {count !== undefined && count > 0 && (
-                <span style={styles.sidebarCount}>{count}</span>
+        <div style={s.profileBar}>
+          <div style={s.profileBarInner}>
+            <div style={s.profileAvatarWrap}>
+              {profile.profilePicture ? (
+                <img src={profile.profilePicture} alt={displayName} style={s.profileAvatarImg} />
+              ) : (
+                <div style={s.profileAvatarFallback}>{initials}</div>
               )}
-            </button>
-          ))}
-
-          <div style={styles.sidebarDivider} />
-          <div style={styles.sidebarSectionTitle}>Intro</div>
-          {profile.bio && <div style={styles.bioText}>{profile.bio}</div>}
-          {profile.currentCountry && (
-            <div style={styles.infoItem}>
-              <FaMapMarkerAlt size={14} color="#65676b" />
-              <span>Lives in {profile.currentCountry}</span>
             </div>
-          )}
-          {profile.work && (
-            <div style={styles.infoItem}>
-              <FaBriefcase size={14} color="#65676b" />
-              <span>Works at {profile.work}</span>
+            <div style={s.profileMeta}>
+              <h1 style={s.profileName}>{displayName}</h1>
+              <div style={{ ...s.profileRoleBadge, background: roleColor + '18', color: roleColor }}>
+                {profile.role || 'Member'}
+              </div>
+              <div style={s.profileStats}>
+                <span style={s.profileStatItem} onClick={fetchFollowers}>
+                  <strong>{followersCount}</strong>
+                  <span style={s.profileStatLabel}>Followers</span>
+                </span>
+                <span style={s.profileStatItem} onClick={fetchFollowing}>
+                  <strong>{followingCount}</strong>
+                  <span style={s.profileStatLabel}>Following</span>
+                </span>
+                <span style={s.profileStatItem}>
+                  <strong>{posts.length}</strong>
+                  <span style={s.profileStatLabel}>Posts</span>
+                </span>
+              </div>
             </div>
-          )}
-
-          <div style={styles.sidebarDivider} />
-          <div style={styles.sidebarFooter}>
-            Privacy · Terms · Safety<br />
-            © {new Date().getFullYear()} KaziLinda
+            <div style={s.profileActions}>
+              {!isOwnProfile && (
+                <FollowButton userId={profile._id} isFollowingProp={isFollowing} onFollowChange={handleFollowChange} token={token} />
+              )}
+              <Link to={`/messages?user=${profile._id}`} style={s.msgBtn}>
+                <FaEnvelope size={15} style={{ marginRight: 6 }} /> Message
+              </Link>
+              {isOwnProfile && (
+                <Link to="/profile/edit" style={s.editBtn}>
+                  <FaEdit size={15} style={{ marginRight: 6 }} /> Edit Profile
+                </Link>
+              )}
+            </div>
           </div>
+          <div style={s.tabsRow}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 3-COLUMN BODY */}
+      <div style={s.body}>
+        {/* LEFT SIDEBAR */}
+        <aside style={s.leftSidebar}>
+          <div style={s.sideCard}>
+            <div style={s.sideCardTitle}>Intro</div>
+            {profile.bio && <p style={s.bioText}>{profile.bio}</p>}
+            <div style={s.introList}>
+              {profile.role && (
+                <div style={s.introItem}>
+                  <FaWork size={14} color={roleColor} />
+                  <span>Works as <strong>{profile.role}</strong></span>
+                </div>
+              )}
+              {profile.currentCountry && (
+                <div style={s.introItem}>
+                  <FaMapMarkerAlt size={14} color="#65676b" />
+                  <span>Lives in <strong>{profile.currentCountry}</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
+          {profile.skills?.length > 0 && (
+            <div style={s.sideCard}>
+              <div style={s.sideCardTitle}>Skills</div>
+              <div style={s.skillsWrap}>
+                {profile.skills.map(skill => (
+                  <span key={skill} style={s.skillTag}>{skill}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={s.sidebarFooter}>© {new Date().getFullYear()} KaziLinda</div>
         </aside>
 
-        {/* Main Feed */}
-        <main style={styles.feedCol}>
-          {/* Cover Photo */}
-          <div style={styles.coverSection}>
-            {profile.coverPhoto ? (
-              <img src={profile.coverPhoto} alt="Cover" style={styles.coverImage} />
-            ) : (
-              <div style={styles.coverPlaceholder}>
-                <div style={styles.coverGradient}></div>
-              </div>
-            )}
-            {isOwnProfile && (
-              <>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  accept="image/*" 
-                  style={{ display: 'none' }} 
-                  onChange={handleCoverUpload} 
-                  disabled={uploadingCover} 
-                />
-                <button 
-                  style={styles.editCoverBtn} 
-                  onClick={() => fileInputRef.current?.click()} 
-                  disabled={uploadingCover}
-                >
-                  <FaCamera /> {uploadingCover ? 'Uploading...' : 'Edit Cover'}
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Profile Info Card */}
-          <div style={styles.profileInfoCard}>
-            <div style={styles.avatarSection}>
-              <ClickableAvatar 
-                userId={profile._id} 
-                src={profile.profilePicture} 
-                size={120} 
-                style={styles.profileAvatar}
-              />
-              {isOwnProfile && (
-                <Button as={Link} to="/profile/edit" size="sm" style={styles.editProfileBtn}>
-                  <FaEdit /> Edit Profile
-                </Button>
-              )}
-            </div>
-            <div style={styles.profileDetails}>
-              <h2 style={styles.profileName}>{profile.name}</h2>
-              <div style={styles.profileBadges}>
-                <Badge bg="secondary" style={styles.roleBadge}>{profile.role}</Badge>
-                {profile.currentCountry && (
-                  <span style={styles.location}><FaMapMarkerAlt /> {profile.currentCountry}</span>
-                )}
-              </div>
-              <div style={styles.profileStats}>
-                <span onClick={fetchFollowers} style={styles.statLink}>
-                  <strong>{followersCount}</strong> Followers
-                </span>
-                <span onClick={fetchFollowing} style={styles.statLink}>
-                  <strong>{followingCount}</strong> Following
-                </span>
-                <span><strong>{posts.length}</strong> Posts</span>
-              </div>
-            </div>
-            <div style={styles.profileActions}>
-              {!isOwnProfile && (
-                <FollowButton 
-                  userId={profile._id} 
-                  isFollowingProp={isFollowing} 
-                  onFollowChange={handleFollowChange} 
-                  token={token} 
-                />
-              )}
-              <Button as={Link} to={`/messages?user=${profile._id}`} style={styles.messageBtn}>
-                <FaEnvelope /> Message
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats Row */}
-          <div style={styles.statsRow}>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>{followersCount}</div>
-              <div style={styles.statLabel}>Followers</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>{followingCount}</div>
-              <div style={styles.statLabel}>Following</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>{posts.length}</div>
-              <div style={styles.statLabel}>Posts</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>{totalLikes}</div>
-              <div style={styles.statLabel}>Likes</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>{totalComments}</div>
-              <div style={styles.statLabel}>Comments</div>
-            </div>
-          </div>
-
-          {/* Create Post Button */}
-          {isOwnProfile && (
-            <button style={styles.createPostBtn} onClick={() => setShowPostModal(true)}>
-              <FaEdit /> Create Post
-            </button>
-          )}
-
-          {/* Tabs */}
-          <div style={styles.tabsContainer}>
-            <button 
-              style={{ ...styles.tab, ...(activeTab === 'posts' ? styles.tabActive : {}) }}
-              onClick={() => setActiveTab('posts')}
-            >
-              Posts ({posts.length})
-            </button>
-            <button 
-              style={{ ...styles.tab, ...(activeTab === 'photos' ? styles.tabActive : {}) }}
-              onClick={() => setActiveTab('photos')}
-            >
-              Photos
-            </button>
-            <button 
-              style={{ ...styles.tab, ...(activeTab === 'about' ? styles.tabActive : {}) }}
-              onClick={() => setActiveTab('about')}
-            >
-              About
-            </button>
-          </div>
-
-          {/* Posts Tab */}
+        {/* MAIN FEED */}
+        <main style={s.feedCol}>
           {activeTab === 'posts' && (
             postsLoading ? (
-              <div style={styles.loadingSpinner}>
-                <Spinner animation="border" style={{ color: KL_BRAND }} />
-              </div>
+              <div style={s.centerSpinner}><Spinner animation="border" style={{ color: KL_BRAND }} /></div>
             ) : posts.length === 0 ? (
-              <div style={styles.emptyFeed}>
-                <FaHeart size={48} color={KL_BRAND} />
-                <h4>No posts yet</h4>
-                <p>When {isOwnProfile ? 'you' : profile.name} posts, they'll appear here</p>
-                {isOwnProfile && (
-                  <button style={styles.createPostBtnSmall} onClick={() => setShowPostModal(true)}>
-                    Create Your First Post
-                  </button>
-                )}
+              <div style={s.emptyCard}>
+                <FaHeart size={52} color={KL_BRAND} />
+                <h4 style={{ marginTop: 14 }}>No posts yet</h4>
               </div>
             ) : (
               posts.map(post => (
-                <div key={post._id} style={styles.postCard}>
-                  <div style={styles.postHeader}>
-                    <div style={styles.postAuthor}>
-                      <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} size={40} />
-                      <div>
-                        <strong style={styles.postAuthorName}>{post.author?.name || profile.name}</strong>
-                        <div style={styles.postMeta}>
+                <div key={post._id} style={s.postCard}>
+                  <div style={s.postHeader}>
+                    <div style={s.postAuthorRow}>
+                      <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} name={post.author?.name} size={42} />
+                      <div style={{ marginLeft: 10 }}>
+                        <Link to={`/profile/${post.author?._id}`} style={s.postAuthorName}>
+                          {post.author?.name}
+                        </Link>
+                        <div style={s.postMeta}>
                           {moment(post.createdAt).fromNow()} · <FaGlobe size={10} color="#65676b" />
                         </div>
                       </div>
                     </div>
-                    <button style={styles.moreBtn}>
-                      <FaEllipsisH size={18} color="#65676b" />
-                    </button>
+                    <button style={s.moreBtn}><FaEllipsisH size={17} color="#65676b" /></button>
                   </div>
-                  <p style={styles.postContent}>{post.content}</p>
-                  {post.media && post.media.length > 0 && (
-                    <div style={styles.postMedia}>
-                      {post.mediaType === 'video' ? (
-                        <video src={post.media[0]} controls style={styles.postMediaEl} />
-                      ) : (
-                        <img src={post.media[0]} alt="Post" style={styles.postMediaEl} />
-                      )}
+                  <div style={s.postContent}>{post.content}</div>
+                  {post.media?.length > 0 && (
+                    <div style={s.postMedia}>
+                      {post.mediaType === 'video'
+                        ? <video src={post.media[0]} controls style={s.postMediaEl} />
+                        : <img src={post.media[0]} alt="post" style={s.postMediaEl} />}
                     </div>
                   )}
-                  <div style={styles.postStats}>
-                    <div style={styles.statsLeft}>
-                      {post.likes?.length > 0 && (
-                        <>
-                          <div style={styles.reactionCircle}>👍</div>
-                          <span style={styles.statsCount}>{post.likes.length}</span>
-                        </>
-                      )}
-                    </div>
-                    <div style={styles.statsRight}>
-                      <span 
-                        style={styles.statsLink}
-                        onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}
-                      >
-                        {post.comments?.length || 0} comments
-                      </span>
-                    </div>
+                  <div style={s.postStats}>
+                    {post.likes?.length > 0 && <span><span style={s.reactionDot}>���</span> {post.likes.length}</span>}
+                    <span style={{ marginLeft: 'auto' }}>{post.comments?.length || 0} comments · {post.shares?.length || 0} shares</span>
                   </div>
-                  <div style={styles.postActions}>
-                    <button 
-                      style={{ ...styles.postActionBtn, color: post.likes?.includes(user?._id) ? KL_BRAND : '#65676b' }}
-                      onClick={() => handleLike(post._id)}
-                    >
-                      <FaThumbsUp size={18} /> Like
-                    </button>
-                    <button 
-                      style={styles.postActionBtn}
-                      onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}
-                    >
-                      <FaComment size={18} /> Comment
-                    </button>
-                    <button style={styles.postActionBtn}>
-                      <FaShare size={18} /> Share
-                    </button>
+                  <div style={s.postActions}>
+                    <button style={s.postActionBtn} onClick={() => handleLike(post._id)}><FaThumbsUp size={17} /> Like</button>
+                    <button style={s.postActionBtn}><FaComment size={17} /> Comment</button>
+                    <button style={s.postActionBtn}><FaShare size={17} /> Share</button>
                   </div>
                 </div>
               ))
             )
           )}
 
-          {/* About Tab */}
           {activeTab === 'about' && (
-            <div style={styles.aboutCard}>
-              <h4>About {profile.name}</h4>
-              {profile.bio && (
-                <div style={styles.aboutSection}>
-                  <strong>Bio</strong>
-                  <p>{profile.bio}</p>
-                </div>
-              )}
-              {profile.work && (
-                <div style={styles.aboutSection}>
-                  <strong>Work</strong>
-                  <p><FaBriefcase /> {profile.work}</p>
-                </div>
-              )}
-              {profile.currentCountry && (
-                <div style={styles.aboutSection}>
-                  <strong>Location</strong>
-                  <p><FaMapMarkerAlt /> {profile.currentCountry}</p>
-                </div>
-              )}
-              {profile.phone && (
-                <div style={styles.aboutSection}>
-                  <strong>Contact</strong>
-                  <p>📞 {profile.phone}</p>
-                </div>
-              )}
+            <div style={s.postCard}>
+              <div style={s.aboutSection}>
+                <div style={s.aboutTitle}>About {displayName}</div>
+                {profile.bio && <div style={s.aboutRow}><span style={s.aboutKey}>Bio</span><span style={s.aboutVal}>{profile.bio}</span></div>}
+                {profile.role && <div style={s.aboutRow}><span style={s.aboutKey}>Role</span><span style={s.aboutVal}>{profile.role}</span></div>}
+                {profile.currentCountry && <div style={s.aboutRow}><span style={s.aboutKey}>Current Country</span><span style={s.aboutVal}>{profile.currentCountry}</span></div>}
+                {profile.skills?.length > 0 && (
+                  <div style={s.aboutRow}>
+                    <span style={s.aboutKey}>Skills</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, flex: 1 }}>
+                      {profile.skills.map(sk => <span key={sk} style={s.skillTag}>{sk}</span>)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'friends' && (
+            <div style={s.postCard}>
+              <div style={{ padding: '16px 20px', textAlign: 'center', color: '#65676b' }}>Friends list coming soon</div>
             </div>
           )}
         </main>
 
-        {/* Right Sidebar */}
-        <aside style={styles.rightSidebar}>
-          <div style={styles.rightCard}>
-            <div style={styles.rightCardHeader}>
-              <FaUserFriends color={KL_BRAND} />
-              <span>People You May Know</span>
-            </div>
-            <div style={styles.suggestionItem}>
-              <ClickableAvatar userId="suggestion" size={36} />
-              <div>
-                <div style={styles.suggestionName}>Suggested User</div>
-                <button style={styles.followSuggestionBtn}>Follow</button>
-              </div>
-            </div>
+        {/* RIGHT SIDEBAR */}
+        <aside style={s.rightSidebar}>
+          <div style={s.sideCard}>
+            <div style={s.sideCardTitle}>About {firstName}</div>
+            <p style={{ fontSize: 14, color: '#65676b', lineHeight: 1.6 }}>{profile.bio || 'No bio yet.'}</p>
           </div>
-
-          <div style={styles.rightCard}>
-            <div style={styles.rightCardHeader}>
-              <FaCalendarAlt color="#e41e3f" />
-              <span>Birthdays</span>
+          {followersCount > 0 && (
+            <div style={s.sideCard}>
+              <div style={s.sideCardTitle}>Followers <span style={s.sideCardCount}>{followersCount}</span></div>
+              <button style={s.viewAllBtn} onClick={fetchFollowers}>View all followers</button>
             </div>
-            <div style={styles.birthdayItem}>
-              <FaHeart color={KL_BRAND} />
-              <span>No birthdays today</span>
-            </div>
-          </div>
-
-          <div style={styles.adCard}>
-            <div style={styles.adContent}>
-              <FaBriefcase size={32} color={KL_BRAND} />
-              <h4>Find Your Dream Job</h4>
-              <p>Browse verified jobs on KaziLinda</p>
-              <Button as={Link} to="/jobs" style={styles.adBtn}>View Jobs</Button>
-            </div>
-          </div>
-
-          <div style={styles.sidebarFooter}>
-            © {new Date().getFullYear()} KaziLinda
-          </div>
+          )}
         </aside>
       </div>
 
-      {/* Modals - Create Post, Comment, Followers, Following */}
-      <Modal show={showPostModal} onHide={() => setShowPostModal(false)} centered size="lg">
-        <Modal.Header closeButton style={styles.modalHeader}>
-          <Modal.Title style={styles.modalTitle}>Create Post</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={styles.modalBody}>
-          <div style={styles.modalPostHeader}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
-            <div>
-              <strong>{user?.name}</strong>
-              <Badge bg="secondary" style={styles.publicBadge}><FaGlobe /> Public</Badge>
-            </div>
-          </div>
-          <textarea
-            rows={4}
-            placeholder={`What's on your mind, ${user?.name?.split(' ')[0]}?`}
-            value={newPost}
-            onChange={e => setNewPost(e.target.value)}
-            style={styles.postTextarea}
-          />
-          <div style={styles.modalPostActions}>
-            <button style={styles.mediaBtn}><FaImage /> Photo/Video</button>
-            <button style={styles.mediaBtn}><FaSmile /> Feeling</button>
-          </div>
-        </Modal.Body>
-        <Modal.Footer style={styles.modalFooter}>
-          <button 
-            style={styles.sharePostBtn} 
-            onClick={handleCreatePost} 
-            disabled={posting || !newPost.trim()}
-          >
-            {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
-          </button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)} centered size="lg">
-        <Modal.Header closeButton style={styles.modalHeader}>
-          <Modal.Title>Comments</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: 0 }}>
-          <div style={styles.commentPostPreview}>
-            <p style={{ margin: 0 }}>{selectedPost?.content}</p>
-          </div>
-          <div style={styles.commentsList}>
-            {selectedPost?.comments?.map(comment => (
-              <div key={comment._id} style={styles.commentItem}>
-                <ClickableAvatar userId={comment.user?._id} src={comment.user?.profilePicture} size={32} />
-                <div style={styles.commentBubble}>
-                  <strong>{comment.user?.name}</strong>
-                  <p>{comment.text}</p>
-                  <small>{moment(comment.createdAt).fromNow()}</small>
-                </div>
-              </div>
-            ))}
-            {!selectedPost?.comments?.length && (
-              <div style={styles.noComments}>No comments yet. Be the first!</div>
-            )}
-          </div>
-          <div style={styles.commentInputWrapper}>
-            <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={32} />
-            <input 
-              type="text" 
-              placeholder="Write a comment..." 
-              value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAddComment()}
-              style={styles.commentInput}
-            />
-            <button onClick={handleAddComment} style={styles.sendCommentBtn}>
-              <FaPaperPlane />
-            </button>
-          </div>
-        </Modal.Body>
-      </Modal>
-
+      {/* MODALS */}
       <Modal show={showFollowersModal} onHide={() => setShowFollowersModal(false)} centered>
-        <Modal.Header closeButton style={styles.modalHeader}>
-          <Modal.Title>Followers ({followersList.length})</Modal.Title>
+        <Modal.Header closeButton style={s.modalHeader}>
+          <Modal.Title style={{ fontWeight: 700 }}>Followers ({followersList.length})</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          {followersList.map(f => (
-            <div key={f._id} style={styles.modalUserItem}>
-              <ClickableAvatar userId={f._id} src={f.profilePicture} size={40} />
-              <Link to={`/profile/${f._id}`} style={styles.modalUserName}>{f.name}</Link>
-            </div>
-          ))}
-          {followersList.length === 0 && <div style={styles.noResults}>No followers yet</div>}
+        <Modal.Body style={{ maxHeight: 420, overflowY: 'auto' }}>
+          {followersList.length === 0 ? <div style={s.modalEmpty}>No followers yet</div> :
+            followersList.map(f => (
+              <div key={f._id} style={s.modalUserRow}>
+                <ClickableAvatar userId={f._id} src={f.profilePicture} name={f.name} size={42} />
+                <Link to={`/profile/${f._id}`} style={s.modalUserName} onClick={() => setShowFollowersModal(false)}>{f.name}</Link>
+              </div>
+            ))
+          }
         </Modal.Body>
       </Modal>
 
       <Modal show={showFollowingModal} onHide={() => setShowFollowingModal(false)} centered>
-        <Modal.Header closeButton style={styles.modalHeader}>
-          <Modal.Title>Following ({followingList.length})</Modal.Title>
+        <Modal.Header closeButton style={s.modalHeader}>
+          <Modal.Title style={{ fontWeight: 700 }}>Following ({followingList.length})</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          {followingList.map(f => (
-            <div key={f._id} style={styles.modalUserItem}>
-              <ClickableAvatar userId={f._id} src={f.profilePicture} size={40} />
-              <Link to={`/profile/${f._id}`} style={styles.modalUserName}>{f.name}</Link>
-            </div>
-          ))}
-          {followingList.length === 0 && <div style={styles.noResults}>Not following anyone yet</div>}
+        <Modal.Body style={{ maxHeight: 420, overflowY: 'auto' }}>
+          {followingList.length === 0 ? <div style={s.modalEmpty}>Not following anyone yet</div> :
+            followingList.map(f => (
+              <div key={f._id} style={s.modalUserRow}>
+                <ClickableAvatar userId={f._id} src={f.profilePicture} name={f.name} size={42} />
+                <Link to={`/profile/${f._id}`} style={s.modalUserName} onClick={() => setShowFollowingModal(false)}>{f.name}</Link>
+              </div>
+            ))
+          }
         </Modal.Body>
       </Modal>
     </div>
   );
 };
 
-const styles = {
-  page: {
-    background: '#f0f2f5',
-    minHeight: '100vh',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-  },
-  loadingWrap: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', height: '100vh', background: '#f0f2f5',
-  },
-  loadingLogo: {
-    width: 60, height: 60, borderRadius: '50%', background: KL_BRAND,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#fff', fontWeight: 900, fontSize: 24, fontStyle: 'italic',
-  },
-  primaryBtn: {
-    background: KL_BRAND, border: 'none', padding: '8px 24px',
-    borderRadius: 6, fontWeight: 600, marginTop: 16,
-  },
-  emptyState: {
-    textAlign: 'center', padding: '100px 20px',
-    background: '#fff', minHeight: '100vh',
-  },
-  nav: {
-    position: 'fixed', top: 0, left: 0, right: 0, height: 56,
-    background: '#fff', borderBottom: '1px solid #dddfe2',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0 16px', zIndex: 200,
-    boxShadow: '0 2px 4px rgba(0,0,0,.08)',
-  },
+const s = {
+  page: { background: KL_BG, minHeight: '100vh', fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif", color: '#050505' },
+  fullCenter: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: KL_BG },
+  loadingLogo: { width: 60, height: 60, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24 },
+  primaryBtn: { display: 'inline-block', marginTop: 20, background: KL_BRAND, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
+  nav: { position: 'fixed', top: 0, left: 0, right: 0, height: 56, background: '#fff', borderBottom: '1px solid #dddfe2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 300, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
   navLeft: { display: 'flex', alignItems: 'center', gap: 8 },
-  navCenter: { display: 'flex', gap: 4 },
+  navCenter: { display: 'flex', gap: 2 },
   navRight: { display: 'flex', alignItems: 'center', gap: 8 },
-  logoBox: {
-    width: 40, height: 40, borderRadius: '50%',
-    background: KL_BRAND,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    textDecoration: 'none',
-  },
-  logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' },
-  searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
-  searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 },
-  searchInput: {
-    background: '#f0f2f5', border: 'none', borderRadius: 20,
-    padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none',
-    width: 240, color: '#050505',
-  },
-  navTab: {
-    width: 100, height: 48, border: 'none', background: 'transparent',
-    borderRadius: 10, cursor: 'pointer', display: 'flex',
-    alignItems: 'center', justifyContent: 'center', position: 'relative',
-    textDecoration: 'none',
-  },
-  navTabActive: { background: KL_BRAND_LIGHT },
-  navTabLine: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
-    background: KL_BRAND, borderRadius: '2px 2px 0 0',
-  },
-  navIconBtn: {
-    position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer',
-  },
-  navIconInner: {
-    width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  badge: {
-    position: 'absolute', top: 0, right: 0,
-    background: '#e41e3f', color: '#fff', borderRadius: 10,
-    fontSize: 11, fontWeight: 700, padding: '1px 5px',
-  },
-  body: {
-    display: 'flex', paddingTop: 56,
-    maxWidth: 1440, margin: '0 auto',
-  },
-  leftSidebar: {
-    width: 280, flexShrink: 0,
-    padding: '12px 8px',
-    position: 'sticky', top: 56, height: 'calc(100vh - 56px)',
-    overflowY: 'auto',
-  },
-  sidebarProfileLink: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '8px 8px', borderRadius: 8,
-    textDecoration: 'none', color: '#050505',
-    fontWeight: 500, fontSize: 15,
-  },
-  sidebarNavItem: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '10px 8px', borderRadius: 8,
-    border: 'none', background: 'transparent',
-    cursor: 'pointer', width: '100%', textAlign: 'left',
-    fontWeight: 500, fontSize: 14, color: '#050505',
-  },
-  sidebarIconWrap: {
-    width: 36, height: 36, borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  sidebarLinkText: { fontSize: 14, fontWeight: 500, color: '#050505', flex: 1 },
-  sidebarCount: {
-    fontSize: 12, fontWeight: 600, padding: '2px 8px',
-    borderRadius: 12, background: KL_BRAND_LIGHT, color: KL_BRAND,
-  },
-  sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '12px 0' },
-  sidebarSectionTitle: { fontSize: 15, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
-  bioText: { fontSize: 14, color: '#65676b', padding: '8px 8px', lineHeight: 1.4 },
-  infoItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', fontSize: 14, color: '#65676b' },
-  sidebarFooter: { fontSize: 11, color: '#65676b', padding: 8, lineHeight: 1.6, textAlign: 'center' },
-  feedCol: {
-    flex: 1, maxWidth: 680, margin: '0 16px', padding: '16px 0',
-    minWidth: 0,
-  },
-  coverSection: {
-    position: 'relative', height: 280, borderRadius: '12px 12px 0 0',
-    overflow: 'hidden', background: `linear-gradient(135deg, ${KL_BRAND} 0%, ${KL_BRAND_DARK} 100%)`,
-  },
-  coverImage: { width: '100%', height: '100%', objectFit: 'cover' },
-  coverPlaceholder: { 
-    height: '100%', 
-    background: `linear-gradient(135deg, ${KL_BRAND} 0%, ${KL_BRAND_DARK} 100%)` 
-  },
-  coverGradient: { height: '100%' },
-  editCoverBtn: {
-    position: 'absolute', bottom: 16, right: 16,
-    background: '#fff', border: 'none', borderRadius: 8,
-    padding: '8px 16px', fontSize: 13, fontWeight: 500,
-    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-  },
-  profileInfoCard: {
-    background: '#fff', borderRadius: '0 0 12px 12px',
-    padding: '0 20px 20px', marginBottom: 16,
-    position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-  },
-  avatarSection: { position: 'relative', marginTop: -60, marginBottom: 12 },
-  profileAvatar: { border: '4px solid #fff', borderRadius: '50%' },
-  editProfileBtn: {
-    position: 'absolute', bottom: 0, right: 0,
-    background: '#e4e6eb', border: 'none', borderRadius: 20,
-    fontSize: 12, padding: '4px 12px',
-  },
-  profileDetails: { marginBottom: 16 },
-  profileName: { fontSize: 28, fontWeight: 700, marginBottom: 8, color: '#050505' },
-  profileBadges: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' },
-  roleBadge: { background: '#e4e6eb', color: '#050505', padding: '6px 12px', borderRadius: 20, fontSize: 13 },
-  location: { fontSize: 14, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
-  profileStats: { display: 'flex', gap: 24 },
-  statLink: { fontSize: 14, color: '#65676b', cursor: 'pointer' },
-  profileActions: { display: 'flex', gap: 12, marginTop: 8 },
-  messageBtn: {
-    background: '#e4e6eb', border: 'none', borderRadius: 8,
-    padding: '8px 16px', fontSize: 14, fontWeight: 500,
-    color: '#050505',
-  },
-  statsRow: {
-    display: 'flex', gap: 16, justifyContent: 'space-between',
-    background: '#fff', borderRadius: 12, padding: '16px 20px',
-    marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-  },
-  statCard: { textAlign: 'center', flex: 1 },
-  statNumber: { fontSize: 20, fontWeight: 700, color: KL_BRAND, marginBottom: 4 },
-  statLabel: { fontSize: 13, color: '#65676b' },
-  createPostBtn: {
-    width: '100%', padding: '12px', background: KL_BRAND,
-    color: '#fff', border: 'none', borderRadius: 10,
-    fontWeight: 600, fontSize: 15, marginBottom: 16,
-    cursor: 'pointer', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: 8,
-  },
-  createPostBtnSmall: {
-    background: KL_BRAND, border: 'none', borderRadius: 8,
-    padding: '8px 20px', color: '#fff', fontWeight: 500,
-    marginTop: 12, cursor: 'pointer',
-  },
-  tabsContainer: {
-    display: 'flex', gap: 8, background: '#fff', borderRadius: 12,
-    padding: '0 16px', marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-  },
-  tab: {
-    padding: '14px 0', border: 'none', background: 'transparent',
-    fontSize: 15, fontWeight: 600, color: '#65676b',
-    cursor: 'pointer', position: 'relative',
-  },
+  logoBox: { width: 40, height: 40, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
+  logoText: { color: '#fff', fontWeight: 900, fontSize: 17, fontStyle: 'italic' },
+  searchIcon: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676b', pointerEvents: 'none' },
+  searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 34px', fontSize: 15, outline: 'none', width: 220, color: '#050505' },
+  navTab: { width: 90, height: 48, background: 'transparent', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
+  iconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 },
+  iconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
+  coverWrap: { paddingTop: 56 },
+  coverPhoto: { height: 350, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: 16, background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' },
+  coverImage: { width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 },
+  coverGradient: { width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' },
+  editCoverBtn: { display: 'flex', alignItems: 'center', background: '#fff', color: '#050505', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 600, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.2)', zIndex: 1 },
+  profileBar: { background: '#fff', borderBottom: '1px solid #dddfe2', boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
+  profileBarInner: { maxWidth: 1100, margin: '0 auto', padding: '0 24px 16px', display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap', position: 'relative' },
+  profileAvatarWrap: { position: 'relative', marginTop: -60, flexShrink: 0 },
+  profileAvatarImg: { width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,.2)' },
+  profileAvatarFallback: { width: 120, height: 120, borderRadius: '50%', background: KL_BRAND, border: '4px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 40, boxShadow: '0 2px 8px rgba(0,0,0,.2)' },
+  profileMeta: { flex: 1, paddingBottom: 4 },
+  profileName: { fontSize: 30, fontWeight: 800, marginBottom: 4, color: '#050505' },
+  profileRoleBadge: { display: 'inline-block', borderRadius: 20, padding: '3px 12px', fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: 'capitalize' },
+  profileStats: { display: 'flex', gap: 20 },
+  profileStatItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', fontSize: 15, fontWeight: 700 },
+  profileStatLabel: { fontSize: 13, color: '#65676b', fontWeight: 400 },
+  profileActions: { display: 'flex', gap: 10, alignItems: 'center', paddingBottom: 4 },
+  msgBtn: { display: 'inline-flex', alignItems: 'center', background: '#e4e6eb', color: '#050505', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
+  editBtn: { display: 'inline-flex', alignItems: 'center', background: KL_BRAND, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
+  tabsRow: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 4, borderTop: '1px solid #dddfe2' },
+  tab: { padding: '14px 16px', border: 'none', background: 'transparent', fontSize: 15, fontWeight: 600, color: '#65676b', cursor: 'pointer', position: 'relative', borderRadius: '8px 8px 0 0' },
   tabActive: { color: KL_BRAND, borderBottom: `3px solid ${KL_BRAND}` },
-  postCard: {
-    background: '#fff', borderRadius: 12, marginBottom: 16,
-    boxShadow: '0 1px 2px rgba(0,0,0,.2)', overflow: 'hidden',
-  },
-  postHeader: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '12px 16px',
-  },
-  postAuthor: { display: 'flex', alignItems: 'center', gap: 10 },
-  postAuthorName: { fontSize: 14, color: '#050505' },
-  postMeta: { fontSize: 12, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
-  moreBtn: {
-    width: 32, height: 32, borderRadius: '50%', border: 'none',
-    background: 'transparent', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  postContent: { padding: '0 16px 12px', fontSize: 14, lineHeight: 1.5, color: '#050505' },
-  postMedia: { maxHeight: 400, overflow: 'hidden', background: '#1a1a1a' },
-  postMediaEl: { width: '100%', maxHeight: 400, objectFit: 'contain' },
-  postStats: {
-    display: 'flex', justifyContent: 'space-between', padding: '8px 16px',
-    borderBottom: '1px solid #dddfe2',
-  },
-  statsLeft: { display: 'flex', alignItems: 'center', gap: 4 },
-  statsCount: { fontSize: 13, color: '#65676b' },
-  statsRight: { display: 'flex', gap: 12 },
-  statsLink: { fontSize: 13, color: '#65676b', cursor: 'pointer' },
-  reactionCircle: {
-    width: 18, height: 18, borderRadius: '50%', background: KL_BRAND,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 10, color: '#fff',
-  },
-  postActions: {
-    display: 'flex', padding: '4px 8px',
-  },
-  postActionBtn: {
-    flex: 1, padding: '8px 0', border: 'none', background: 'transparent',
-    fontSize: 14, fontWeight: 600, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    gap: 8, color: '#65676b',
-  },
-  rightSidebar: {
-    width: 320, flexShrink: 0,
-    padding: '12px 8px',
-    position: 'sticky', top: 56, height: 'calc(100vh - 56px)',
-    overflowY: 'auto',
-  },
-  rightCard: {
-    background: '#fff', borderRadius: 12, padding: '16px',
-    marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-  },
-  rightCardHeader: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 15, fontWeight: 600, marginBottom: 12,
-    paddingBottom: 8, borderBottom: '1px solid #dddfe2',
-  },
-  suggestionItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' },
-  suggestionName: { fontSize: 13, fontWeight: 500, marginBottom: 4 },
-  followSuggestionBtn: {
-    background: KL_BRAND, border: 'none', borderRadius: 4,
-    padding: '2px 12px', fontSize: 11, color: '#fff', cursor: 'pointer',
-  },
-  birthdayItem: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 },
-  adCard: {
-    background: `linear-gradient(135deg, ${KL_BRAND_LIGHT} 0%, #fff 100%)`,
-    borderRadius: 12, padding: '20px', textAlign: 'center',
-    marginBottom: 16,
-  },
-  adBtn: { background: KL_BRAND, border: 'none', borderRadius: 6, padding: '6px 16px', fontSize: 13 },
-  aboutCard: {
-    background: '#fff', borderRadius: 12, padding: '20px',
-    boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-  },
-  aboutSection: { marginBottom: 20 },
-  modalHeader: { borderBottom: '1px solid #dddfe2', background: '#fff' },
-  modalTitle: { fontSize: 18, fontWeight: 600 },
-  modalBody: { padding: '20px' },
-  modalFooter: { borderTop: '1px solid #dddfe2', padding: '16px 20px' },
-  modalPostHeader: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
-  publicBadge: { background: '#e4e6eb', color: '#050505', fontSize: 11, marginLeft: 8 },
-  postTextarea: {
-    width: '100%', border: 'none', outline: 'none',
-    fontSize: 16, resize: 'none', fontFamily: 'inherit',
-  },
-  modalPostActions: { display: 'flex', gap: 12, marginTop: 16, borderTop: '1px solid #dddfe2', paddingTop: 16 },
-  mediaBtn: {
-    background: '#f0f2f5', border: 'none', borderRadius: 8,
-    padding: '8px 12px', fontSize: 13, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', gap: 6,
-  },
-  sharePostBtn: {
-    background: KL_BRAND, border: 'none', borderRadius: 6,
-    padding: '8px 24px', color: '#fff', fontWeight: 600, width: '100%',
-  },
-  commentPostPreview: { padding: '16px', borderBottom: '1px solid #dddfe2', background: '#fafafa' },
-  commentsList: { padding: '16px', maxHeight: 300, overflowY: 'auto' },
-  commentItem: { display: 'flex', gap: 10, marginBottom: 16 },
-  commentBubble: { background: '#f0f2f5', borderRadius: 18, padding: '8px 12px', flex: 1 },
-  commentInputWrapper: { display: 'flex', gap: 10, padding: '16px', borderTop: '1px solid #dddfe2' },
-  commentInput: { flex: 1, border: 'none', background: '#f0f2f5', borderRadius: 20, padding: '8px 16px', outline: 'none' },
-  sendCommentBtn: {
-    background: KL_BRAND, border: 'none', borderRadius: '50%',
-    width: 36, height: 36, display: 'flex', alignItems: 'center',
-    justifyContent: 'center', color: '#fff',
-  },
-  modalUserItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' },
-  modalUserName: { fontSize: 14, fontWeight: 500, color: '#050505', textDecoration: 'none' },
-  noComments: { textAlign: 'center', padding: '20px', color: '#65676b' },
-  noResults: { textAlign: 'center', padding: '20px', color: '#65676b' },
-  emptyFeed: {
-    textAlign: 'center', padding: '60px 20px',
-    background: '#fff', borderRadius: 12,
-    color: '#65676b',
-  },
-  loadingSpinner: { textAlign: 'center', padding: '40px' },
+  body: { display: 'flex', maxWidth: 1100, margin: '20px auto', padding: '0 16px', gap: 16 },
+  leftSidebar: { width: 280, flexShrink: 0, position: 'sticky', top: 72, height: 'fit-content' },
+  sideCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', padding: '16px 16px', marginBottom: 16 },
+  sideCardTitle: { fontSize: 18, fontWeight: 700, color: '#050505', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  sideCardCount: { fontSize: 14, color: '#65676b', fontWeight: 400 },
+  bioText: { fontSize: 15, color: '#050505', lineHeight: 1.6, marginBottom: 12 },
+  introList: { display: 'flex', flexDirection: 'column', gap: 10 },
+  introItem: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#050505' },
+  skillsWrap: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+  skillTag: { background: KL_LIGHT, color: '#d68910', border: '1px solid #f7c96633', borderRadius: 20, padding: '4px 12px', fontSize: 13, fontWeight: 600 },
+  sidebarFooter: { fontSize: 12, color: '#65676b', textAlign: 'center', padding: '8px 0' },
+  viewAllBtn: { width: '100%', background: '#e4e6eb', color: '#050505', border: 'none', borderRadius: 8, padding: '8px 0', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginTop: 8 },
+  feedCol: { flex: 1, minWidth: 0 },
+  centerSpinner: { textAlign: 'center', padding: 48 },
+  emptyCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', textAlign: 'center', padding: '48px 24px' },
+  postCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', marginBottom: 16, overflow: 'hidden' },
+  postHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px 0' },
+  postAuthorRow: { display: 'flex', alignItems: 'center' },
+  postAuthorName: { fontWeight: 700, fontSize: 15, color: '#050505', textDecoration: 'none', display: 'block' },
+  postMeta: { fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
+  moreBtn: { width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  postContent: { padding: '10px 16px 12px', fontSize: 15, lineHeight: 1.5, color: '#050505' },
+  postMedia: { background: '#1a1a1a', maxHeight: 500, overflow: 'hidden', display: 'flex', justifyContent: 'center' },
+  postMediaEl: { width: '100%', maxHeight: 500, objectFit: 'contain' },
+  postStats: { display: 'flex', alignItems: 'center', padding: '8px 16px', gap: 8 },
+  reactionDot: { fontSize: 14 },
+  postActions: { display: 'flex', padding: '4px 8px' },
+  postActionBtn: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b', borderRadius: 4 },
+  aboutSection: { padding: '16px 20px' },
+  aboutTitle: { fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#050505' },
+  aboutRow: { display: 'flex', gap: 16, padding: '12px 0', borderBottom: '1px solid #f0f2f5', alignItems: 'flex-start' },
+  aboutKey: { minWidth: 120, fontSize: 14, fontWeight: 700, color: '#65676b', flexShrink: 0 },
+  aboutVal: { fontSize: 15, color: '#050505', flex: 1 },
+  rightSidebar: { width: 280, flexShrink: 0, position: 'sticky', top: 72, height: 'fit-content' },
+  modalHeader: { borderBottom: '1px solid #dddfe2' },
+  modalUserRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: '1px solid #f0f2f5' },
+  modalUserName: { fontSize: 15, fontWeight: 600, color: '#050505', textDecoration: 'none' },
+  modalEmpty: { textAlign: 'center', padding: '32px 16px', color: '#65676b', fontSize: 15 },
 };
 
 export default Profile;

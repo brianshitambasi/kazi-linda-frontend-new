@@ -15,6 +15,7 @@ import Login from './pages/Login';
 import RegisterEnhanced from './pages/RegisterEnhanced';
 import WorkerDashboard from './pages/WorkerDashboard';
 import EmployerDashboard from './pages/EmployerDashboard';
+import EmployerProfile from "./pages/Employer/EmployerProfile";
 import AdminDashboard from './pages/AdminDashboard';
 import EmbassyDashboard from './pages/EmbassyDashboard';
 import Messages from './pages/Messages/Messages';
@@ -23,6 +24,7 @@ import NewsFeed from './pages/NewsFeed';
 import Profile from './pages/Profile';
 import Discover from './pages/Discover';
 import Friends from './pages/Friends';
+import Settings from './pages/Settings/Settings';
 import AdminJobs from './pages/Admin/AdminJobs';
 import AdminReports from './pages/Admin/AdminReports';
 import AdminActivityLog from './pages/Admin/AdminActivityLog';
@@ -66,8 +68,12 @@ function App() {
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><WorkerDashboard /></ProtectedRoute>} />
             <Route path="/employer/dashboard" element={<ProtectedRoute><EmployerDashboard /></ProtectedRoute>} />
+            <Route path="/employer/profile" element={<ProtectedRoute><EmployerProfile /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/embassy/dashboard" element={<ProtectedRoute><EmbassyDashboard /></ProtectedRoute>} />
+            
+            {/* Settings Route */}
+            <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             
             {/* Admin Management Routes */}
             <Route path="/admin/jobs" element={<ProtectedRoute><AdminJobs /></ProtectedRoute>} />

@@ -108,3 +108,9 @@ export const adminAPI = {
 // npm install moment
 
 export default api;
+
+// Add public profile endpoint
+export const getPublicProfile = (userId) => {
+  return fetch(`https://kazi-linda.onrender.com/api/profile/public/${userId}`)
+    .then(res => res.json());
+};
