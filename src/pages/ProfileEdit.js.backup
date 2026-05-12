@@ -19,12 +19,18 @@ const ProfileEdit = () => {
     countryOfOrigin: 'Kenya',
     currentCountry: '',
     currentCity: '',
-    skills: [],
+    skills: ['fetchProfile'],
     experience: ''
   });
   const [skillInput, setSkillInput] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
   const [preview, setPreview] = useState(null);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -36,7 +42,7 @@ const ProfileEdit = () => {
         countryOfOrigin: res.countryOfOrigin || 'Kenya',
         currentCountry: res.currentCountry || '',
         currentCity: res.currentCity || '',
-        skills: res.skills || [],
+        skills: res.skills || ['fetchProfile'],
         experience: res.experience || ''
       });
       setPreview(res.profilePicture);
@@ -46,11 +52,6 @@ const ProfileEdit = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

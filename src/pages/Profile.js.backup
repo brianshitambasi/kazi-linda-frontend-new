@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Spinner, Modal } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
@@ -7,8 +7,8 @@ import FollowButton from '../components/Common/FollowButton';
 import {
   FaMapMarkerAlt, FaEnvelope, FaEdit, FaCamera, FaThumbsUp, FaComment,
   FaShare, FaEllipsisH, FaHeart, FaBell, FaSearch, FaUsers,
-  FaBriefcase, FaGlobe, FaUserCircle, FaHome,
-  FaFacebookMessenger, FaBriefcase as FaWork
+  FaBriefcase, FaGlobe, FaUserCircle, FaHome, FaPhone, FaLanguage,
+  FaCalendarAlt, FaFacebookMessenger, FaBriefcase as FaWork
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import moment from 'moment';
@@ -20,7 +20,7 @@ const KL_BG = '#f0f2f5';
 const Profile = () => {
   const { userId } = useParams();
   const { user, token } = useAuth();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
