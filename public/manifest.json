@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "short_name": "KaziLinda",
   "name": "Kazi-Linda - Connect Workers & Employers",
   "description": "Platform connecting East African workers with employers in Kenya, Uganda, and Tanzania",
@@ -18,6 +19,9 @@
   ],
   "start_url": ".",
   "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["social", "business", "productivity"],
+  "prefer_related_applications": false,
   "theme_color": "#f39c12",
   "background_color": "#ffffff"
 }

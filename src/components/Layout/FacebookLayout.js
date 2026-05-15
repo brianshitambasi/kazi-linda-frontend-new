@@ -3,22 +3,28 @@ import { Container, Row, Col, Nav, Badge, Image, Dropdown } from 'react-bootstra
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  FaHome, FaNewspaper, FaUsers, FaVideo, FaStore, 
-  FaBriefcase, FaShieldAlt, FaBan,
-  FaBell, FaSignOutAlt,
+  FaHome, FaNewspaper, FaUsers, FaBriefcase, 
+  FaShieldAlt, FaBan, FaBell, FaSignOutAlt,
   FaUserCircle, FaFacebookMessenger
 } from 'react-icons/fa';
 import { messageAPI } from '../../services/api';
+import ClickableAvatar from '../Common/ClickableAvatar';
 
 const FacebookLayout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [onlineFriends, setOnlineFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 30000);
+      fetchOnlineFriends();
+      const interval = setInterval(() => {
+        fetchUnreadCount();
+        fetchOnlineFriends();
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [user]);
@@ -26,28 +32,36 @@ const FacebookLayout = ({ children }) => {
   const fetchUnreadCount = async () => {
     try {
       const res = await messageAPI.getUnreadCount();
-      setUnreadCount(res.data.count);
+      setUnreadCount(res.data.count || 0);
     } catch (err) {
       console.error('Error fetching unread count:', err);
+    }
+  };
+
+  const fetchOnlineFriends = async () => {
+    try {
+      const res = await fetch('https://kazi-linda.onrender.com/api/social/online-friends', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOnlineFriends(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Error fetching online friends:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const leftMenuItems = [
     { icon: FaNewspaper, label: 'News Feed', path: '/news', active: location.pathname === '/news' },
     { icon: FaUsers, label: 'Friends', path: '/friends', active: location.pathname === '/friends' },
-    { icon: FaVideo, label: 'Videos', path: '/videos', active: location.pathname === '/videos' },
-    { icon: FaStore, label: 'Jobs', path: '/jobs', active: location.pathname === '/jobs' },
+    { icon: FaBriefcase, label: 'Jobs', path: '/jobs', active: location.pathname === '/jobs' },
     { divider: true },
     { icon: FaBriefcase, label: 'My Applications', path: '/applications', active: location.pathname === '/applications' },
     { icon: FaShieldAlt, label: 'Verify Employer', path: '/verify', active: location.pathname === '/verify' },
     { icon: FaBan, label: 'Blacklist', path: '/blacklist', active: location.pathname === '/blacklist' },
-  ];
-
-  const onlineFriends = [
-    { name: 'Lilian Akinyi', online: true },
-    { name: 'Wesonga Zippy', online: true },
-    { name: 'Atieno Mellen', online: false },
-    { name: 'Cynthia Chelagat', online: true },
   ];
 
   if (!user) {
@@ -67,7 +81,7 @@ const FacebookLayout = ({ children }) => {
             
             <div className="nav-center">
               <div className="search-bar">
-                <input type="text" placeholder="Search KAZI LINDA" />
+                <input type="text" placeholder="Search KaziLinda..." />
               </div>
             </div>
             
@@ -123,7 +137,7 @@ const FacebookLayout = ({ children }) => {
                 )}
                 <div className="user-details">
                   <strong>{user.name}</strong>
-                  <small>{user.role}</small>
+                  <small>{user.role || 'Member'}</small>
                 </div>
               </div>
               <Nav className="flex-column">
@@ -147,24 +161,31 @@ const FacebookLayout = ({ children }) => {
 
           <Col lg={3} className="right-sidebar">
             <div className="sidebar-card">
-              <h6>Online Friends</h6>
-              {onlineFriends.map((friend, idx) => (
-                <div key={idx} className="online-friend">
-                  <div className="friend-avatar">
-                    <FaUserCircle size={32} />
-                    {friend.online && <span className="online-dot"></span>}
-                  </div>
-                  <span className="friend-name">{friend.name}</span>
+              <h6>Online Friends ({onlineFriends.length})</h6>
+              {loading ? (
+                <div className="text-center py-3">
+                  <small>Loading...</small>
                 </div>
-              ))}
-            </div>
-            
-            <div className="sidebar-card mt-3">
-              <h6>Sponsored</h6>
-              <div className="sponsored-ad">
-                <small>Your AI writing assistant</small>
-                <strong>Grammarly</strong>
-              </div>
+              ) : onlineFriends.length > 0 ? (
+                onlineFriends.map((friend, idx) => (
+                  <div key={friend._id || idx} className="online-friend">
+                    <div className="friend-avatar">
+                      <ClickableAvatar 
+                        userId={friend._id} 
+                        src={friend.profilePicture} 
+                        name={friend.name} 
+                        size={32}
+                      />
+                      {friend.isOnline && <span className="online-dot"></span>}
+                    </div>
+                    <span className="friend-name">{friend.name}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-3">
+                  <small className="text-muted">No friends online</small>
+                </div>
+              )}
             </div>
           </Col>
         </Row>
@@ -307,12 +328,6 @@ const FacebookLayout = ({ children }) => {
         }
         .friend-name {
           font-size: 14px;
-        }
-        .sponsored-ad {
-          background: #f0f2f5;
-          padding: 12px;
-          border-radius: 8px;
-          margin-top: 8px;
         }
         @media (max-width: 768px) {
           .left-sidebar, .right-sidebar {

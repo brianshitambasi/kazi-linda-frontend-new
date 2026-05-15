@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  FaUser, FaEnvelope, FaPhone, FaLock, FaUserPlus, FaCheckCircle,
+  FaUser, FaEnvelope, FaPhone, FaLock, FaCheckCircle,
   FaBuilding, FaBriefcase, FaShieldAlt, FaArrowRight, FaArrowLeft,
   FaGlobe, FaMapMarkerAlt, FaCamera, FaEye, FaEyeSlash
 } from 'react-icons/fa';
@@ -57,7 +57,6 @@ const RegisterEnhanced = () => {
   const roleOptions = [
     { value: 'worker',    label: 'Job Seeker',    icon: FaBriefcase, desc: 'Find employment',          color: '#31a24c' },
     { value: 'employer',  label: 'Employer',      icon: FaBuilding,  desc: 'Hire workers',             color: '#1877f2' },
-    { value: 'recruiter', label: 'Recruiter',     icon: FaUserPlus,  desc: 'Recruitment agency',       color: '#7c3aed' },
     { value: 'embassy',   label: 'Embassy Staff', icon: FaShieldAlt, desc: 'Government / Embassy',     color: '#e41e3f' },
   ];
 
@@ -151,7 +150,7 @@ const RegisterEnhanced = () => {
         });
       }
       toast.success('Account created successfully!');
-      const dash = { worker: '/dashboard', employer: '/employer/dashboard', admin: '/admin/dashboard', recruiter: '/recruiter/dashboard', embassy: '/embassy/dashboard' };
+      const dash = { worker: '/dashboard', employer: '/employer/dashboard', admin: '/admin/dashboard', embassy: '/embassy/dashboard' };
       navigate(dash[formData.role] || '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
@@ -178,9 +177,9 @@ const RegisterEnhanced = () => {
           <div style={s.leftFeatures}>
             {[
               '✅ Verified job listings',
-              '���️ Employer blacklist',
-              '�� Jobs in 15+ countries',
-              '��� Worker community',
+              '⚠️ Employer blacklist',
+              '��� Jobs in 15+ countries',
+              '�� Worker community',
               '��� Contract verification',
             ].map(f => <div key={f} style={s.leftFeatureItem}>{f}</div>)}
           </div>
@@ -463,7 +462,7 @@ const RegisterEnhanced = () => {
                 onClick={handleSubmit}
                 disabled={loading}
               >
-                {loading ? 'Creating Account…' : 'Create Account ���'}
+                {loading ? 'Creating Account…' : 'Create Account ✨'}
               </button>
             )}
           </div>
@@ -511,6 +510,8 @@ const s = {
     flex: 1, overflowY: 'auto',
     display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
     padding: '32px 16px',
+    
+
   },
   formBox: {
     background: '#fff', borderRadius: 12,

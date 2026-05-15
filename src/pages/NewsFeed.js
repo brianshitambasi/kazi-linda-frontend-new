@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Spinner, Modal, Form, InputGroup, Button, ProgressBar } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
@@ -7,13 +8,10 @@ import StoriesRing from '../components/Stories/StoriesRing';
 import {
   FaHeart, FaComment, FaShare, FaSmile, FaImage,
   FaEllipsisH, FaGlobe, FaPaperPlane, FaThumbsUp, FaLaughBeam,
-  FaSadTear, FaAngry, FaRegSmile, FaVideo, FaHome, FaStore,
-  FaUsers, FaPlayCircle, FaBell, FaFacebookMessenger, FaSearch,
-  FaChevronDown, FaUserFriends, FaBookmark, FaCalendarAlt, FaClock,
-// eslint-disable-next-line no-unused-vars
-  FaTimes, FaSpinner
+  FaSadTear, FaAngry, FaRegSmile, FaVideo, FaHome,
+  FaUsers, FaBell, FaFacebookMessenger, FaSearch,
+  FaTimes, FaNewspaper, FaBriefcase, FaShieldAlt, FaEnvelope
 } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import moment from 'moment';
 
@@ -21,12 +19,12 @@ const KL_BRAND = '#f39c12';
 const KL_BRAND_LIGHT = '#fef9e7';
 
 const reactionsList = [
-  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'üëç' },
+  { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'Ì±ç' },
   { type: 'love',  icon: FaHeart,     color: '#f33e58', label: 'Love',  emoji: '‚ù§Ô∏è' },
-  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: 'üòÇ' },
-  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: 'üòÆ' },
-  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: 'üò¢' },
-  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: 'üò°' },
+  { type: 'haha',  icon: FaLaughBeam, color: '#f7b928', label: 'Haha',  emoji: 'Ì∏Ç' },
+  { type: 'wow',   icon: FaRegSmile,  color: '#f7b928', label: 'Wow',   emoji: 'Ì∏Æ' },
+  { type: 'sad',   icon: FaSadTear,   color: '#1877f2', label: 'Sad',   emoji: 'Ì∏¢' },
+  { type: 'angry', icon: FaAngry,     color: '#e41e3f', label: 'Angry', emoji: 'Ì∏°' },
 ];
 
 const NewsFeed = () => {
@@ -47,7 +45,7 @@ const NewsFeed = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareText, setShareText] = useState('');
   const [reactions, setReactions] = useState({});
-  const [activeNav, setActiveNav] = useState('home');
+  const [activeNav, setActiveNav] = useState('feed');
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaType, setMediaType] = useState(null);
@@ -120,18 +118,13 @@ const NewsFeed = () => {
     return () => clearInterval(interval);
   }, [fetchFeed, fetchSuggestions, fetchOnlineFriends]);
 
-  // Handle media file selection
   const handleMediaSelect = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Validate file size (max 50MB)
     if (file.size > 50 * 1024 * 1024) {
       toast.error('File size must be less than 50MB');
       return;
     }
-
-    // Validate file type
     if (type === 'photo' && !file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
@@ -140,31 +133,26 @@ const NewsFeed = () => {
       toast.error('Please select a video file');
       return;
     }
-
     setSelectedMedia(file);
     setMediaType(type);
     setMediaPreview(URL.createObjectURL(file));
     setShowMediaModal(true);
   };
 
-  // Upload media to Cloudinary
   const uploadMedia = async (file, type) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'kazi_linda_uploads');
     formData.append('resource_type', type === 'video' ? 'video' : 'image');
-
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/denczbmin/${type === 'video' ? 'video' : 'image'}/upload`);
-      
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const progress = Math.round((event.loaded / event.total) * 100);
           setUploadProgress(progress);
         }
       };
-      
       xhr.onload = () => {
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
@@ -173,33 +161,25 @@ const NewsFeed = () => {
           reject(new Error('Upload failed'));
         }
       };
-      
       xhr.onerror = () => reject(new Error('Upload failed'));
       xhr.send(formData);
     });
   };
 
-  // Create post with media
   const handleCreatePost = async () => {
     if (!newPost.trim() && !selectedMedia) {
       toast.error('Please write something or add media');
       return;
     }
-
     setPosting(true);
     setUploadProgress(0);
-
     try {
       let mediaUrl = null;
       let finalMediaType = null;
-
-      // Upload media if selected
       if (selectedMedia) {
         mediaUrl = await uploadMedia(selectedMedia, mediaType);
         finalMediaType = mediaType;
       }
-
-      // Create post
       const response = await fetch('https://kazi-linda.onrender.com/api/social/posts', {
         method: 'POST',
         headers: {
@@ -214,9 +194,7 @@ const NewsFeed = () => {
           postType: 'status'
         }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
         setPosts([data, ...posts]);
         setNewPost('');
@@ -246,7 +224,6 @@ const NewsFeed = () => {
           'Content-Type': 'application/json'
         },
       });
-      
       if (response.ok) {
         setReactions({ ...reactions, [postId]: reactionType });
         fetchFeed();
@@ -269,7 +246,6 @@ const NewsFeed = () => {
           body: JSON.stringify({ text: commentText }),
         }
       );
-      
       if (response.ok) {
         setCommentText('');
         setShowCommentModal(false);
@@ -294,7 +270,6 @@ const NewsFeed = () => {
           postType: 'share'
         }),
       });
-      
       if (response.ok) {
         setShowShareModal(false);
         setShareText('');
@@ -329,20 +304,20 @@ const NewsFeed = () => {
   }
 
   const navTabs = [
-    { id: 'home', icon: FaHome, label: 'Home' },
-    { id: 'watch', icon: FaPlayCircle, label: 'Watch' },
-    { id: 'marketplace', icon: FaStore, label: 'Market' },
-    { id: 'groups', icon: FaUsers, label: 'Groups' },
-    { id: 'gaming', icon: FaCalendarAlt, label: 'Events' },
+    { id: 'home', icon: FaHome, label: 'Home', link: '/' },
+    { id: 'feed', icon: FaNewspaper, label: 'Feed', link: '/news' },
+    { id: 'discover', icon: FaUsers, label: 'Discover', link: '/discover' },
+    { id: 'jobs', icon: FaBriefcase, label: 'Jobs', link: '/jobs' },
+    { id: 'verify', icon: FaShieldAlt, label: 'Verify', link: '/verify' },
   ];
 
   const leftLinks = [
-    { icon: FaUserFriends, label: 'Friends', color: '#1877f2' },
-    { icon: FaStore, label: 'Marketplace', color: '#e41e3f' },
-    { icon: FaPlayCircle, label: 'Watch', color: '#7c3aed' },
-    { icon: FaBookmark, label: 'Saved', color: '#7c3aed' },
-    { icon: FaCalendarAlt, label: 'Events', color: KL_BRAND },
-    { icon: FaClock, label: 'Memories', color: KL_BRAND },
+    { icon: FaHome, label: 'Home', color: '#1877f2', link: '/' },
+    { icon: FaNewspaper, label: 'News Feed', color: '#f39c12', link: '/news' },
+    { icon: FaUsers, label: 'Discover', color: '#31a24c', link: '/discover' },
+    { icon: FaBriefcase, label: 'Jobs', color: '#e41e3f', link: '/jobs' },
+    { icon: FaShieldAlt, label: 'Verify', color: '#7c3aed', link: '/verify' },
+    { icon: FaEnvelope, label: 'Messages', color: '#1877f2', link: '/messages' },
   ];
 
   return (
@@ -360,8 +335,9 @@ const NewsFeed = () => {
 
         <div style={styles.navCenter}>
           {navTabs.map(tab => (
-            <button
+            <Link
               key={tab.id}
+              to={tab.link}
               style={{
                 ...styles.navTab,
                 ...(activeNav === tab.id ? styles.navTabActive : {}),
@@ -371,7 +347,7 @@ const NewsFeed = () => {
             >
               <tab.icon size={24} style={{ color: activeNav === tab.id ? KL_BRAND : '#65676b' }} />
               {activeNav === tab.id && <div style={styles.navTabLine} />}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -393,33 +369,28 @@ const NewsFeed = () => {
 
       <div style={styles.body}>
         <aside style={styles.leftSidebar}>
-          <div style={styles.sidebarProfileLink}>
+          <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}>
             <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={36} />
             <span style={styles.sidebarLinkText}>{user?.name}</span>
-          </div>
+          </Link>
 
-          {leftLinks.map(({ icon: Icon, label, color }) => (
-            <button key={label} style={styles.sidebarNavItem}>
+          {leftLinks.map(({ icon: Icon, label, color, link }) => (
+            <Link key={label} to={link} style={styles.sidebarNavItem}>
               <span style={{ ...styles.sidebarIconWrap, background: color + '22' }}>
                 <Icon size={18} color={color} />
               </span>
               <span style={styles.sidebarLinkText}>{label}</span>
-            </button>
+            </Link>
           ))}
-
-          <button style={styles.seeMoreBtn}>
-            <span style={styles.seeMoreIcon}><FaChevronDown size={14} color="#050505" /></span>
-            See more
-          </button>
 
           <div style={styles.sidebarDivider} />
           <div style={styles.sidebarSectionTitle}>Your shortcuts</div>
 
           {suggestedUsers.slice(0, 3).map(u => (
-            <div key={u._id} style={styles.sidebarProfileLink}>
+            <Link key={u._id} to={`/profile/${u._id}`} style={styles.sidebarProfileLink}>
               <ClickableAvatar userId={u._id} src={u.profilePicture} size={36} />
               <span style={styles.sidebarLinkText}>{u.name}</span>
-            </div>
+            </Link>
           ))}
 
           <div style={styles.sidebarDivider} />
@@ -435,10 +406,7 @@ const NewsFeed = () => {
           <div style={styles.card}>
             <div style={styles.createPostTop}>
               <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
-              <div
-                style={styles.createPostInput}
-                onClick={() => document.getElementById('kl-post-textarea').focus()}
-              >
+              <div style={styles.createPostInput} onClick={() => document.getElementById('kl-post-textarea').focus()}>
                 <textarea
                   id="kl-post-textarea"
                   rows={1}
@@ -450,7 +418,6 @@ const NewsFeed = () => {
               </div>
             </div>
             
-            {/* Media Preview */}
             {mediaPreview && (
               <div style={styles.mediaPreviewContainer}>
                 <div style={styles.mediaPreviewHeader}>
@@ -483,11 +450,7 @@ const NewsFeed = () => {
                 <FaSmile color={KL_BRAND} size={20} />
                 <span style={{ color: KL_BRAND, fontWeight: 600 }}>Feeling</span>
               </button>
-              <button
-                style={styles.postBtn}
-                onClick={handleCreatePost}
-                disabled={posting}
-              >
+              <button style={styles.postBtn} onClick={handleCreatePost} disabled={posting}>
                 {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
               </button>
             </div>
@@ -504,9 +467,7 @@ const NewsFeed = () => {
                   <div style={styles.postAuthorRow}>
                     <ClickableAvatar userId={post.author?._id} src={post.author?.profilePicture} name={post.author?.name} size={40} />
                     <div style={{ marginLeft: 8 }}>
-                      <div style={styles.postAuthorName}>
-                        {post.author?.name}
-                      </div>
+                      <div style={styles.postAuthorName}>{post.author?.name}</div>
                       <div style={styles.postMeta}>
                         {moment(post.createdAt).fromNow()} ¬∑ <FaGlobe size={10} color="#65676b" />
                       </div>
@@ -533,22 +494,16 @@ const NewsFeed = () => {
                   <div style={styles.statsLeft}>
                     {post.likes?.length > 0 && (
                       <>
-                        <div style={styles.reactionCircle}>ÔøΩÔøΩÔøΩ</div>
+                        <div style={styles.reactionCircle}>Ì±ç</div>
                         <span style={styles.statsCount}>{post.likes.length}</span>
                       </>
                     )}
                   </div>
                   <div style={styles.statsRight}>
-                    <span
-                      style={styles.statsLink}
-                      onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}
-                    >
+                    <span style={styles.statsLink} onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}>
                       {post.comments?.length || 0} comments
                     </span>
-                    <span
-                      style={{ ...styles.statsLink, marginLeft: 12 }}
-                      onClick={() => { setSelectedPost(post); setShowShareModal(true); }}
-                    >
+                    <span style={{ ...styles.statsLink, marginLeft: 12 }} onClick={() => { setSelectedPost(post); setShowShareModal(true); }}>
                       {post.shares?.length || 0} shares
                     </span>
                   </div>
@@ -557,27 +512,16 @@ const NewsFeed = () => {
                 <div style={styles.postActions}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <button
-                      style={{
-                        ...styles.postActionBtn,
-                        color: reaction ? reaction.color : '#65676b',
-                      }}
+                      style={{ ...styles.postActionBtn, color: reaction ? reaction.color : '#65676b' }}
                       onMouseEnter={() => openReaction(post._id)}
                       onMouseLeave={() => closeReaction(post._id)}
                       onClick={() => handleReaction(post._id, 'like')}
                     >
-                      {reaction ? (
-                        <>{reaction.emoji} {reaction.label}</>
-                      ) : (
-                        <><FaThumbsUp size={18} /> Like</>
-                      )}
+                      {reaction ? <>{reaction.emoji} {reaction.label}</> : <><FaThumbsUp size={18} /> Like</>}
                     </button>
 
                     {showReactionMenu === post._id && (
-                      <div
-                        style={styles.reactionPopup}
-                        onMouseEnter={() => openReaction(post._id)}
-                        onMouseLeave={() => closeReaction(post._id)}
-                      >
+                      <div style={styles.reactionPopup} onMouseEnter={() => openReaction(post._id)} onMouseLeave={() => closeReaction(post._id)}>
                         {reactionsList.map(r => (
                           <button
                             key={r.type}
@@ -591,26 +535,18 @@ const NewsFeed = () => {
                             title={r.label}
                           >
                             <span style={{ fontSize: 28 }}>{r.emoji}</span>
-                            {reactionHover === `${post._id}-${r.type}` && (
-                              <span style={styles.reactionLabel}>{r.label}</span>
-                            )}
+                            {reactionHover === `${post._id}-${r.type}` && <span style={styles.reactionLabel}>{r.label}</span>}
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <button
-                    style={styles.postActionBtn}
-                    onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}
-                  >
+                  <button style={styles.postActionBtn} onClick={() => { setSelectedPost(post); setShowCommentModal(true); }}>
                     <FaComment size={18} /> Comment
                   </button>
 
-                  <button
-                    style={styles.postActionBtn}
-                    onClick={() => { setSelectedPost(post); setShowShareModal(true); }}
-                  >
+                  <button style={styles.postActionBtn} onClick={() => { setSelectedPost(post); setShowShareModal(true); }}>
                     <FaShare size={18} /> Share
                   </button>
                 </div>
@@ -632,9 +568,7 @@ const NewsFeed = () => {
             <div key={suggestion._id} style={styles.rsUserRow}>
               <ClickableAvatar userId={suggestion._id} src={suggestion.profilePicture} name={suggestion.name} size={40} />
               <div style={styles.rsUserInfo}>
-                <div style={styles.rsUserName}>
-                  {suggestion.name}
-                </div>
+                <div style={styles.rsUserName}>{suggestion.name}</div>
                 <div style={styles.rsUserMeta}>{suggestion.role || 'KaziLinda member'}</div>
               </div>
               <FollowButton
@@ -648,9 +582,7 @@ const NewsFeed = () => {
               />
             </div>
           ))}
-          {suggestedUsers.length === 0 && (
-            <div style={styles.rsEmpty}>No suggestions right now</div>
-          )}
+          {suggestedUsers.length === 0 && <div style={styles.rsEmpty}>No suggestions right now</div>}
 
           <div style={styles.sidebarDivider} />
 
@@ -658,17 +590,13 @@ const NewsFeed = () => {
           {onlineFriends.map(friend => (
             <div key={friend._id} style={styles.rsContactRow}>
               <div style={{ position: 'relative' }}>
-                <ClickableAvatar userId={friend._id} src={friend.profilePicture} name={friend.name} size={36} showOnline isOnline />
-                <span style={styles.onlineDot} />
+                <ClickableAvatar userId={friend._id} src={friend.profilePicture} name={friend.name} size={36} showOnline isOnline={friend.isOnline} />
+                {friend.isOnline && <span style={styles.onlineDot} />}
               </div>
-              <div style={styles.rsContactName}>
-                {friend.name}
-              </div>
+              <div style={styles.rsContactName}>{friend.name}</div>
             </div>
           ))}
-          {onlineFriends.length === 0 && (
-            <div style={styles.rsEmpty}>No friends online</div>
-          )}
+          {onlineFriends.length === 0 && <div style={styles.rsEmpty}>No friends online</div>}
 
           <div style={styles.sidebarDivider} />
           <div style={styles.rsFooter}>¬© {new Date().getFullYear()} KaziLinda</div>
@@ -678,9 +606,7 @@ const NewsFeed = () => {
       {/* Comment Modal */}
       <Modal show={showCommentModal} onHide={() => setShowCommentModal(false)} centered size="lg">
         <Modal.Header closeButton style={styles.modalHeader}>
-          <Modal.Title style={{ fontSize: 20, fontWeight: 700 }}>
-            {selectedPost?.author?.name}'s post
-          </Modal.Title>
+          <Modal.Title style={{ fontSize: 20, fontWeight: 700 }}>{selectedPost?.author?.name}'s post</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ padding: '0 0 16px' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #dddfe2' }}>
@@ -697,11 +623,7 @@ const NewsFeed = () => {
                 </div>
               </div>
             ))}
-            {!selectedPost?.comments?.length && (
-              <div style={{ textAlign: 'center', color: '#65676b', padding: 16 }}>
-                No comments yet. Be the first!
-              </div>
-            )}
+            {!selectedPost?.comments?.length && <div style={{ textAlign: 'center', color: '#65676b', padding: 16 }}>No comments yet. Be the first!</div>}
           </div>
           <div style={{ padding: '0 16px' }}>
             <InputGroup>
@@ -713,10 +635,7 @@ const NewsFeed = () => {
                 onKeyDown={e => e.key === 'Enter' && handleAddComment()}
                 style={{ borderRadius: '20px', marginLeft: 8, background: '#f0f2f5', border: 'none' }}
               />
-              <Button
-                onClick={handleAddComment}
-                style={{ background: KL_BRAND, border: 'none', borderRadius: '50%', width: 36, height: 36, padding: 0, marginLeft: 8 }}
-              >
+              <Button onClick={handleAddComment} style={{ background: KL_BRAND, border: 'none', borderRadius: '50%', width: 36, height: 36, padding: 0, marginLeft: 8 }}>
                 <FaPaperPlane size={14} />
               </Button>
             </InputGroup>
@@ -734,19 +653,10 @@ const NewsFeed = () => {
             <ClickableAvatar userId={user?._id} src={user?.profilePicture} name={user?.name} size={40} />
             <div>
               <strong>{user?.name}</strong>
-              <div style={{ fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <FaGlobe size={11} /> Public
-              </div>
+              <div style={{ fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 }}><FaGlobe size={11} /> Public</div>
             </div>
           </div>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            placeholder="Say something about this‚Ä¶"
-            value={shareText}
-            onChange={e => setShareText(e.target.value)}
-            style={{ border: 'none', outline: 'none', resize: 'none', fontSize: 20, padding: 0 }}
-          />
+          <Form.Control as="textarea" rows={3} placeholder="Say something about this‚Ä¶" value={shareText} onChange={e => setShareText(e.target.value)} style={{ border: 'none', outline: 'none', resize: 'none', fontSize: 20, padding: 0 }} />
           {selectedPost && (
             <div style={styles.sharePreview}>
               <strong style={{ fontSize: 13 }}>{selectedPost.author?.name}</strong>
@@ -755,44 +665,23 @@ const NewsFeed = () => {
           )}
         </Modal.Body>
         <Modal.Footer style={{ border: 'none' }}>
-          <Button
-            onClick={handleShare}
-            style={{ background: KL_BRAND, border: 'none', borderRadius: 6, fontWeight: 700, width: '100%' }}
-          >
-            Share now
-          </Button>
+          <Button onClick={handleShare} style={{ background: KL_BRAND, border: 'none', borderRadius: 6, fontWeight: 700, width: '100%' }}>Share now</Button>
         </Modal.Footer>
       </Modal>
 
       {/* Media Preview Modal */}
       <Modal show={showMediaModal} onHide={() => setShowMediaModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Media</Modal.Title>
-        </Modal.Header>
+        <Modal.Header closeButton><Modal.Title>Add Media</Modal.Title></Modal.Header>
         <Modal.Body style={{ textAlign: 'center' }}>
-          {mediaPreview && (
-            mediaType === 'video' ? (
-              <video src={mediaPreview} controls style={{ maxWidth: '100%', maxHeight: '400px' }} />
-            ) : (
-              <img src={mediaPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '400px' }} />
-            )
-          )}
+          {mediaPreview && (mediaType === 'video' ? <video src={mediaPreview} controls style={{ maxWidth: '100%', maxHeight: '400px' }} /> : <img src={mediaPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '400px' }} />)}
           <Form.Group className="mt-3">
             <Form.Label>Add caption (optional)</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              placeholder="Write something about your photo/video..."
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-            />
+            <Form.Control as="textarea" rows={2} placeholder="Write something about your photo/video..." value={newPost} onChange={(e) => setNewPost(e.target.value)} />
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowMediaModal(false)}>Cancel</Button>
-          <Button variant="warning" onClick={handleCreatePost} disabled={posting}>
-            {posting ? <Spinner animation="border" size="sm" /> : 'Post'}
-          </Button>
+          <Button variant="warning" onClick={handleCreatePost} disabled={posting}>{posting ? <Spinner animation="border" size="sm" /> : 'Post'}</Button>
         </Modal.Footer>
       </Modal>
     </div>
@@ -808,16 +697,14 @@ const styles = {
   logoBox: { width: 40, height: 40, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
   logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' }, searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
   searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 }, searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240, color: '#050505' },
-  navTab: { width: 100, height: 48, border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  navTab: { width: 100, height: 48, border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', textDecoration: 'none' },
   navTabActive: { background: KL_BRAND_LIGHT }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: KL_BRAND, borderRadius: '2px 2px 0 0' },
   navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
   body: { display: 'flex', paddingTop: 56, maxWidth: 1440, margin: '0 auto' }, leftSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
   sidebarProfileLink: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', color: '#050505', fontWeight: 500, fontSize: 15 },
-  sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontWeight: 500, fontSize: 15, color: '#050505', textAlign: 'left' },
+  sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', width: '100%', fontWeight: 500, fontSize: 15, color: '#050505', textAlign: 'left' },
   sidebarIconWrap: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, sidebarLinkText: { fontSize: 15, fontWeight: 500, color: '#050505' },
-  seeMoreBtn: { display: 'flex', alignItems: 'center', gap: 12, padding: 8, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 15, fontWeight: 500, color: '#050505' },
-  seeMoreIcon: { width: 36, height: 36, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '8px 0' }, sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
   sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 }, feedCol: { flex: 1, maxWidth: 590, margin: '0 auto', padding: '16px 8px', minWidth: 0 },
   card: { background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)', marginBottom: 16, overflow: 'hidden' }, cardDivider: { borderTop: '1px solid #dddfe2', margin: 0 },
