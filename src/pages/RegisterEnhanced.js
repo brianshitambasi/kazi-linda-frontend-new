@@ -512,6 +512,7 @@ const s = {
     padding: '32px 16px',
     
 
+
   },
   formBox: {
     background: '#fff', borderRadius: 12,
