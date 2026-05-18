@@ -9,6 +9,7 @@ import About from './pages/About';
 import Jobs from './pages/Jobs';
 import JobDetail from './pages/JobDetail';
 import Applications from './pages/Applications';
+import MyApplications from "./components/Worker/MyApplications";
 import VerifyEmployer from './pages/VerifyEmployer';
 import Blacklist from './pages/Blacklist';
 import Login from './pages/Login';
@@ -61,6 +62,7 @@ function App() {
             <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
             <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
             <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
+            <Route path="/my-applications" element={<ProtectedRoute><MyApplications /></ProtectedRoute>} />
             <Route path="/verify" element={<ProtectedRoute><VerifyEmployer /></ProtectedRoute>} />
             <Route path="/blacklist" element={<ProtectedRoute><Blacklist /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
