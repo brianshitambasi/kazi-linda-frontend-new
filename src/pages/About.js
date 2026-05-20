@@ -3,10 +3,26 @@ import { Link } from 'react-router-dom';
 import { Button } from 'react-bootstrap';
 import { 
   FaShieldAlt, FaUsers, FaGlobeAfrica, FaHandsHelping, FaCheckCircle, 
-  FaHeart
+  FaHeart, FaLeaf
 } from 'react-icons/fa';
+import Logo from '../components/Common/Logo';
 
-const KL_BRAND = '#f39c12';
+// Eco-friendly color palette
+const colors = {
+  primary: '#2E7D32',
+  secondary: '#4CAF50',
+  accent: '#81C784',
+  warning: '#FFC107',
+  danger: '#F44336',
+  dark: '#1B5E20',
+  light: '#E8F5E9',
+  gradient: 'linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #4CAF50 100%)',
+  gradientLight: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+  text: '#1B5E20',
+  border: '#A5D6A7'
+};
+
+
 
 const About = () => {
   const values = [
@@ -25,57 +41,77 @@ const About = () => {
 
   return (
     <div style={styles.page}>
+      {/* Hero Section */}
       <div style={styles.heroSection}>
+        <Logo size={80} />
         <h1 style={styles.heroTitle}>About KAZI LINDA</h1>
         <p style={styles.heroSubtitle}>Safe Jobs for Kenyans at Home and Abroad</p>
       </div>
 
+      {/* Mission Section */}
       <div style={styles.missionSection}>
         <div style={styles.missionContent}>
-          <h2>Our Mission</h2>
+          <h2 style={{ color: colors.text }}>Our Mission</h2>
           <p>KAZI LINDA was founded with a single mission: to protect Kenyan workers from exploitation while helping them find legitimate employment opportunities both locally and internationally.</p>
           <p>We believe that every worker deserves dignity, fair treatment, and a safe working environment. Our platform connects job seekers with verified employers and provides tools to report abuse, verify employers, and access emergency support when needed.</p>
-          <div><FaCheckCircle color={KL_BRAND} /> Verify employers before you accept a job</div>
-          <div><FaCheckCircle color={KL_BRAND} /> Access emergency support 24/7</div>
-          <div><FaCheckCircle color={KL_BRAND} /> Connect with a community of workers</div>
+          <div style={styles.checkItem}><FaCheckCircle style={{ color: colors.primary, marginRight: 8 }} /> Verify employers before you accept a job</div>
+          <div style={styles.checkItem}><FaCheckCircle style={{ color: colors.primary, marginRight: 8 }} /> Access emergency support 24/7</div>
+          <div style={styles.checkItem}><FaCheckCircle style={{ color: colors.primary, marginRight: 8 }} /> Connect with a community of workers</div>
         </div>
         <div style={styles.missionQuote}>
-          <FaHeart size={50} color={KL_BRAND} />
-          <h3>Protecting Kenyan Workers</h3>
+          <FaHeart size={50} style={{ color: colors.warning }} />
+          <h3 style={{ color: colors.text }}>Protecting Kenyan Workers</h3>
           <p>"Every worker deserves to return home safely"</p>
+          <FaLeaf size={24} style={{ color: colors.primary, marginTop: 16 }} />
         </div>
       </div>
 
+      {/* Stats Section */}
       <div style={styles.statsGrid}>
         {stats.map((stat, idx) => (
           <div key={idx} style={styles.statCard}>
-            <h2>{stat.number}</h2>
-            <p>{stat.label}</p>
+            <h2 style={styles.statNumber}>{stat.number}</h2>
+            <p style={styles.statLabel}>{stat.label}</p>
           </div>
         ))}
       </div>
 
+      {/* Core Values */}
       <h2 style={styles.sectionTitle}>Our Core Values</h2>
       <div style={styles.valuesGrid}>
         {values.map((value, idx) => (
           <div key={idx} style={styles.valueCard}>
-            <value.icon size={45} color={KL_BRAND} />
-            <h4>{value.title}</h4>
-            <p>{value.desc}</p>
+            <value.icon size={45} style={{ color: colors.primary }} />
+            <h4 style={{ color: colors.text }}>{value.title}</h4>
+            <p style={{ color: '#65676b' }}>{value.desc}</p>
           </div>
         ))}
       </div>
 
+      {/* How It Works */}
       <h2 style={styles.sectionTitle}>How KAZI LINDA Works</h2>
       <div style={styles.stepsGrid}>
-        <div style={styles.stepCard}><div style={styles.stepNumber}>1</div><h4>Find Jobs</h4><p>Browse verified job listings from trusted employers</p></div>
-        <div style={styles.stepCard}><div style={styles.stepNumber}>2</div><h4>Verify Employer</h4><p>Check employer legitimacy before accepting an offer</p></div>
-        <div style={styles.stepCard}><div style={styles.stepNumber}>3</div><h4>Stay Safe</h4><p>Access emergency support and daily check-ins</p></div>
+        <div style={styles.stepCard}>
+          <div style={styles.stepNumber}>1</div>
+          <h4 style={{ color: colors.text }}>Find Jobs</h4>
+          <p style={{ color: '#65676b' }}>Browse verified job listings from trusted employers</p>
+        </div>
+        <div style={styles.stepCard}>
+          <div style={styles.stepNumber}>2</div>
+          <h4 style={{ color: colors.text }}>Verify Employer</h4>
+          <p style={{ color: '#65676b' }}>Check employer legitimacy before accepting an offer</p>
+        </div>
+        <div style={styles.stepCard}>
+          <div style={styles.stepNumber}>3</div>
+          <h4 style={{ color: colors.text }}>Stay Safe</h4>
+          <p style={{ color: '#65676b' }}>Access emergency support and daily check-ins</p>
+        </div>
       </div>
 
+      {/* CTA Section */}
       <div style={styles.ctaCard}>
-        <h3>Ready to find safe employment?</h3>
-        <p>Join thousands of Kenyans who trust KAZI LINDA</p>
+        <h3 style={{ color: colors.text }}>Ready to find safe employment?</h3>
+        <p style={{ color: '#65676b' }}>Join thousands of Kenyans who trust KAZI LINDA</p>
         <Button as={Link} to="/register" style={styles.ctaBtn}>Register Now</Button>
       </div>
     </div>
@@ -83,23 +119,26 @@ const About = () => {
 };
 
 const styles = {
-  page: { background: '#f0f2f5', minHeight: '100vh', padding: '40px 20px' },
+  page: { background: colors.gradientLight, minHeight: '100vh', padding: '40px 20px' },
   heroSection: { textAlign: 'center', marginBottom: '40px' },
-  heroTitle: { fontSize: '48px', fontWeight: 'bold', marginBottom: '16px', color: '#050505' },
+  heroTitle: { fontSize: '48px', fontWeight: 'bold', marginBottom: '16px', color: colors.text },
   heroSubtitle: { fontSize: '20px', color: '#65676b' },
   missionSection: { display: 'flex', gap: '32px', maxWidth: '1200px', margin: '0 auto 48px', flexWrap: 'wrap' },
   missionContent: { flex: 2 },
-  missionQuote: { flex: 1, background: '#fef9e7', borderRadius: '16px', padding: '24px', textAlign: 'center' },
+  checkItem: { display: 'flex', alignItems: 'center', marginBottom: 12, fontSize: 14, color: '#050505' },
+  missionQuote: { flex: 1, background: colors.light, borderRadius: '16px', padding: '24px', textAlign: 'center', border: `1px solid ${colors.border}` },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '20px', maxWidth: '1200px', margin: '0 auto 48px' },
-  statCard: { background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.1)' },
-  sectionTitle: { textAlign: 'center', fontSize: '28px', fontWeight: 'bold', marginBottom: '32px' },
+  statCard: { background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.1)', border: `1px solid ${colors.border}` },
+  statNumber: { fontSize: '32px', fontWeight: 'bold', color: colors.primary, marginBottom: 8 },
+  statLabel: { color: '#65676b', margin: 0 },
+  sectionTitle: { textAlign: 'center', fontSize: '28px', fontWeight: 'bold', marginBottom: '32px', color: colors.text },
   valuesGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '20px', maxWidth: '1200px', margin: '0 auto 48px' },
-  valueCard: { background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.1)' },
+  valueCard: { background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.1)', border: `1px solid ${colors.border}` },
   stepsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '20px', maxWidth: '1200px', margin: '0 auto 48px' },
-  stepCard: { background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.1)' },
-  stepNumber: { width: '40px', height: '40px', borderRadius: '50%', background: KL_BRAND, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontWeight: 'bold' },
-  ctaCard: { background: '#fef9e7', borderRadius: '16px', padding: '48px', textAlign: 'center', maxWidth: '800px', margin: '0 auto' },
-  ctaBtn: { background: KL_BRAND, border: 'none', borderRadius: '8px', padding: '12px 32px', fontWeight: 'bold', color: '#fff' },
+  stepCard: { background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.1)', border: `1px solid ${colors.border}` },
+  stepNumber: { width: '40px', height: '40px', borderRadius: '50%', background: colors.gradient, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontWeight: 'bold' },
+  ctaCard: { background: colors.light, borderRadius: '16px', padding: '48px', textAlign: 'center', maxWidth: '800px', margin: '0 auto', border: `1px solid ${colors.accent}` },
+  ctaBtn: { background: colors.gradient, border: 'none', borderRadius: '30px', padding: '12px 32px', fontWeight: 'bold', color: '#fff' },
 };
 
 export default About;
