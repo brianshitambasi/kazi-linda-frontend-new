@@ -10,13 +10,28 @@ import {
   FaEllipsisH, FaGlobe, FaPaperPlane, FaThumbsUp, FaLaughBeam,
   FaSadTear, FaAngry, FaRegSmile, FaVideo, FaHome,
   FaUsers, FaBell, FaFacebookMessenger, FaSearch,
-  FaTimes, FaNewspaper, FaBriefcase, FaShieldAlt, FaEnvelope
+  FaTimes, FaNewspaper, FaBriefcase, FaShieldAlt, FaEnvelope, FaLeaf
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import moment from 'moment';
 
-const KL_BRAND = '#f39c12';
-const KL_BRAND_LIGHT = '#fef9e7';
+// Eco-friendly color palette
+const colors = {
+  primary: '#2E7D32',
+  secondary: '#4CAF50',
+  accent: '#81C784',
+  warning: '#FFC107',
+  danger: '#F44336',
+  dark: '#1B5E20',
+  light: '#E8F5E9',
+  gradient: 'linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #4CAF50 100%)',
+  gradientLight: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+  text: '#1B5E20',
+  textLight: '#fff',
+  border: '#A5D6A7'
+};
+
+const KL_BRAND = colors.primary;
 
 const reactionsList = [
   { type: 'like',  icon: FaThumbsUp,  color: '#1877f2', label: 'Like',  emoji: 'í±' },
@@ -297,7 +312,7 @@ const NewsFeed = () => {
   if (loading) {
     return (
       <div style={styles.loadingWrap}>
-        <div style={styles.loadingLogo}>KL</div>
+        <div style={styles.loadingLogo}><FaLeaf /></div>
         <Spinner animation="border" style={{ color: KL_BRAND, marginTop: 16 }} />
       </div>
     );
@@ -312,12 +327,12 @@ const NewsFeed = () => {
   ];
 
   const leftLinks = [
-    { icon: FaHome, label: 'Home', color: '#1877f2', link: '/' },
-    { icon: FaNewspaper, label: 'News Feed', color: '#f39c12', link: '/news' },
-    { icon: FaUsers, label: 'Discover', color: '#31a24c', link: '/discover' },
-    { icon: FaBriefcase, label: 'Jobs', color: '#e41e3f', link: '/jobs' },
-    { icon: FaShieldAlt, label: 'Verify', color: '#7c3aed', link: '/verify' },
-    { icon: FaEnvelope, label: 'Messages', color: '#1877f2', link: '/messages' },
+    { icon: FaHome, label: 'Home', color: colors.primary, link: '/' },
+    { icon: FaNewspaper, label: 'News Feed', color: colors.warning, link: '/news' },
+    { icon: FaUsers, label: 'Discover', color: colors.secondary, link: '/discover' },
+    { icon: FaBriefcase, label: 'Jobs', color: colors.danger, link: '/jobs' },
+    { icon: FaShieldAlt, label: 'Verify', color: colors.accent, link: '/verify' },
+    { icon: FaEnvelope, label: 'Messages', color: colors.primary, link: '/messages' },
   ];
 
   return (
@@ -325,7 +340,7 @@ const NewsFeed = () => {
       <nav style={styles.nav}>
         <div style={styles.navLeft}>
           <Link to="/" style={styles.logoBox}>
-            <span style={styles.logoText}>KL</span>
+            <FaLeaf size={20} color="#fff" />
           </Link>
           <div style={styles.searchBox}>
             <FaSearch style={styles.searchIcon} />
@@ -395,7 +410,7 @@ const NewsFeed = () => {
 
           <div style={styles.sidebarDivider} />
           <div style={styles.sidebarFooter}>
-            Privacy Â· Terms Â· Advertising<br />
+            <FaLeaf /> Privacy Â· Terms Â· Advertising<br />
             Â© {new Date().getFullYear()} KaziLinda
           </div>
         </aside>
@@ -689,52 +704,52 @@ const NewsFeed = () => {
 };
 
 const styles = {
-  page: { background: '#f0f2f5', minHeight: '100vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
-  loadingWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f0f2f5' },
-  loadingLogo: { width: 60, height: 60, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24, fontStyle: 'italic' },
-  nav: { position: 'fixed', top: 0, left: 0, right: 0, height: 56, background: '#fff', borderBottom: '1px solid #dddfe2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 200, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
+  page: { background: colors.gradientLight, minHeight: '100vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
+  loadingWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: colors.gradientLight },
+  loadingLogo: { width: 60, height: 60, borderRadius: '50%', background: colors.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24, fontStyle: 'italic' },
+  nav: { position: 'fixed', top: 0, left: 0, right: 0, height: 56, background: '#fff', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 200, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
   navLeft: { display: 'flex', alignItems: 'center', gap: 8 }, navCenter: { display: 'flex', gap: 4 }, navRight: { display: 'flex', alignItems: 'center', gap: 8 },
-  logoBox: { width: 40, height: 40, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
+  logoBox: { width: 40, height: 40, borderRadius: '50%', background: colors.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
   logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' }, searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
-  searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 }, searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240, color: '#050505' },
+  searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 }, searchInput: { background: colors.light, border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240, color: '#050505' },
   navTab: { width: 100, height: 48, border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', textDecoration: 'none' },
-  navTabActive: { background: KL_BRAND_LIGHT }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: KL_BRAND, borderRadius: '2px 2px 0 0' },
-  navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
+  navTabActive: { background: colors.light }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: colors.primary, borderRadius: '2px 2px 0 0' },
+  navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: colors.light, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: 0, right: 0, background: colors.danger, color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
   body: { display: 'flex', paddingTop: 56, maxWidth: 1440, margin: '0 auto' }, leftSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
-  sidebarProfileLink: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', color: '#050505', fontWeight: 500, fontSize: 15 },
-  sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', width: '100%', fontWeight: 500, fontSize: 15, color: '#050505', textAlign: 'left' },
-  sidebarIconWrap: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, sidebarLinkText: { fontSize: 15, fontWeight: 500, color: '#050505' },
-  sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '8px 0' }, sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
+  sidebarProfileLink: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', color: colors.text, fontWeight: 500, fontSize: 15 },
+  sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', width: '100%', fontWeight: 500, fontSize: 15, color: colors.text, textAlign: 'left' },
+  sidebarIconWrap: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, sidebarLinkText: { fontSize: 15, fontWeight: 500, color: colors.text },
+  sidebarDivider: { borderTop: `1px solid ${colors.border}`, margin: '8px 0' }, sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
   sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 }, feedCol: { flex: 1, maxWidth: 590, margin: '0 auto', padding: '16px 8px', minWidth: 0 },
-  card: { background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)', marginBottom: 16, overflow: 'hidden' }, cardDivider: { borderTop: '1px solid #dddfe2', margin: 0 },
-  createPostTop: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px' }, createPostInput: { flex: 1, background: '#f0f2f5', borderRadius: 20, padding: '8px 16px', cursor: 'text' },
+  card: { background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)', marginBottom: 16, overflow: 'hidden' }, cardDivider: { borderTop: `1px solid ${colors.border}`, margin: 0 },
+  createPostTop: { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px' }, createPostInput: { flex: 1, background: colors.light, borderRadius: 20, padding: '8px 16px', cursor: 'text' },
   createTextarea: { background: 'transparent', border: 'none', outline: 'none', width: '100%', resize: 'none', fontSize: 17, color: '#050505', fontFamily: 'inherit', lineHeight: 1.4 },
   createPostActions: { display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 12px' }, cpActionBtn: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 15 },
-  postBtn: { background: KL_BRAND, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontSize: 15 },
-  mediaPreviewContainer: { padding: '12px 16px', borderBottom: '1px solid #dddfe2' }, mediaPreviewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  postBtn: { background: colors.gradient, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', fontWeight: 700, cursor: 'pointer', fontSize: 15 },
+  mediaPreviewContainer: { padding: '12px 16px', borderBottom: `1px solid ${colors.border}` }, mediaPreviewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   removeMediaBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#65676b' }, mediaPreview: { maxWidth: '100%', maxHeight: 200, borderRadius: 8 },
   uploadProgress: { margin: '8px 16px 12px' },
   postHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px 0' }, postAuthorRow: { display: 'flex', alignItems: 'center' },
   postAuthorName: { fontWeight: 600, fontSize: 15, color: '#050505' }, postMeta: { fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
   moreBtn: { width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   postContent: { padding: '10px 16px 12px', fontSize: 15, lineHeight: 1.5, color: '#050505' }, postMedia: { maxHeight: 500, overflow: 'hidden', display: 'flex', justifyContent: 'center', background: '#1a1a1a' },
-  postMediaEl: { maxHeight: 500, width: '100%', objectFit: 'contain' }, postStats: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid #dddfe2' },
+  postMediaEl: { maxHeight: 500, width: '100%', objectFit: 'contain' }, postStats: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', borderBottom: `1px solid ${colors.border}` },
   statsLeft: { display: 'flex', alignItems: 'center', gap: 4 }, statsCount: { fontSize: 15, color: '#65676b' }, statsRight: { display: 'flex', gap: 0 }, statsLink: { fontSize: 15, color: '#65676b', cursor: 'pointer' },
   reactionCircle: { width: 20, height: 20, borderRadius: '50%', background: '#1877f2', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 },
   postActions: { display: 'flex', padding: '4px 8px' }, postActionBtn: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 0', borderRadius: 4, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b' },
   reactionPopup: { position: 'absolute', bottom: 'calc(100% + 4px)', left: 0, background: '#fff', borderRadius: 40, boxShadow: '0 2px 12px rgba(0,0,0,.2)', display: 'flex', padding: '6px 8px', gap: 4, zIndex: 300 },
   reactionOption: { background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform .12s', position: 'relative' },
   reactionLabel: { position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,.75)', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap', marginBottom: 4 },
-  commentItem: { display: 'flex', gap: 8, marginBottom: 12 }, commentBubble: { background: '#f0f2f5', borderRadius: 18, padding: '8px 12px', flex: 1 }, commentTime: { fontSize: 12, color: '#65676b' },
-  sharePreview: { border: '1px solid #dddfe2', borderRadius: 8, padding: '10px 12px', marginTop: 12 },
+  commentItem: { display: 'flex', gap: 8, marginBottom: 12 }, commentBubble: { background: colors.light, borderRadius: 18, padding: '8px 12px', flex: 1 }, commentTime: { fontSize: 12, color: '#65676b' },
+  sharePreview: { border: `1px solid ${colors.border}`, borderRadius: 8, padding: '10px 12px', marginTop: 12 },
   rightSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
-  rsSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '4px 8px', marginBottom: 8 }, rsUserRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid #f0f2f5' },
+  rsSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '4px 8px', marginBottom: 8 }, rsUserRow: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: `1px solid ${colors.light}` },
   rsUserInfo: { flex: 1, minWidth: 0 }, rsUserName: { fontSize: 14, fontWeight: 600, color: '#050505' },
   rsUserMeta: { fontSize: 12, color: '#65676b' }, rsContactRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px', borderRadius: 8, cursor: 'pointer', position: 'relative' },
   rsContactName: { fontSize: 15, color: '#050505' }, rsEmpty: { fontSize: 14, color: '#65676b', textAlign: 'center', padding: '12px 0' },
-  rsFooter: { fontSize: 12, color: '#65676b', padding: '8px', textAlign: 'center' }, onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, background: '#31a24c', borderRadius: '50%', border: '2px solid #fff' },
-  emptyFeed: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 48, background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)' }, modalHeader: { borderBottom: '1px solid #dddfe2' },
+  rsFooter: { fontSize: 12, color: '#65676b', padding: '8px', textAlign: 'center' }, onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, background: colors.secondary, borderRadius: '50%', border: '2px solid #fff' },
+  emptyFeed: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 48, background: '#fff', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,.2)' }, modalHeader: { borderBottom: `1px solid ${colors.border}` },
 };
 
 export default NewsFeed;

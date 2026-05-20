@@ -129,7 +129,7 @@ const StoriesRing = () => {
             />
           </div>
           
-          {stories.map((group, idx) => {
+          {(Array.isArray(stories) ? stories : []).map((group, idx) => {
             const isOwnStory = group.user?._id === user?._id;
             if (isOwnStory) return null;
             return (

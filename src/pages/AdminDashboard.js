@@ -12,7 +12,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const KL_BRAND = '#f39c12';
-const KL_BRAND_LIGHT = '#fef9e7';
 
 const AdminDashboard = () => {
   const { user, token } = useAuth();
@@ -667,7 +666,6 @@ const styles = {
   searchBox: { position: 'relative', display: 'flex', alignItems: 'center' }, searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 },
   searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240, color: '#050505' },
   navTab: { width: 100, height: 48, border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', textDecoration: 'none' },
-  navTabActive: { background: KL_BRAND_LIGHT }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: KL_BRAND, borderRadius: '2px 2px 0 0' },
   navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer' }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px' },
   body: { display: 'flex', paddingTop: 56, maxWidth: 1440, margin: '0 auto' },
@@ -675,7 +673,6 @@ const styles = {
   sidebarProfileLink: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', color: '#050505', fontWeight: 500, fontSize: 15, marginBottom: 8 },
   adminBadge: { fontSize: 10, padding: '2px 6px', background: KL_BRAND, color: '#fff' },
   sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', textAlign: 'left', fontWeight: 500, fontSize: 14, color: '#050505' },
-  sidebarNavItemActive: { background: KL_BRAND_LIGHT }, sidebarIconWrap: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   sidebarLinkText: { fontSize: 14, fontWeight: 500, color: '#050505', flex: 1 },
   sidebarCount: { fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 12, minWidth: 24, textAlign: 'center' },
   sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '12px 0' }, sidebarSectionTitle: { fontSize: 15, fontWeight: 700, color: '#65676b', padding: '8px 8px', marginBottom: 4 },
@@ -683,7 +680,6 @@ const styles = {
   adminToolBtn: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', fontSize: 14, color: '#050505' },
   feedCol: { flex: 1, maxWidth: 800, margin: '0 16px', padding: '16px 0', minWidth: 0 },
   headerCard: { background: '#fff', borderRadius: 12, padding: '20px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,.2)', position: 'relative' },
-  headerIcon: { width: 56, height: 56, borderRadius: '50%', background: KL_BRAND_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: '#050505' }, headerDesc: { fontSize: 13, color: '#65676b', margin: 0 },
   addUserBtn: { marginLeft: 'auto', background: KL_BRAND, border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 },
@@ -713,7 +709,6 @@ const styles = {
   rightCardHeader: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #dddfe2' },
   quickActionBtn: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: 'none', background: '#f0f2f5', cursor: 'pointer', width: '100%', marginBottom: 8, fontSize: 14 },
   statusItem: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, borderBottom: '1px solid #f0f2f5' },
-  statusValue: { color: '#65676b' }, tipsCard: { background: KL_BRAND_LIGHT, borderRadius: 12, padding: '16px', marginBottom: 16 },
   tipsList: { paddingLeft: 20, fontSize: 13, color: '#050505', lineHeight: 1.8 },
   modalHeader: { borderBottom: '1px solid #dddfe2', background: '#fff' }, modalTitle: { fontSize: 18, fontWeight: 600, display: 'flex', alignItems: 'center' },
   modalBody: { padding: '20px' }, modalFooter: { borderTop: '1px solid #dddfe2', padding: '16px 20px' },

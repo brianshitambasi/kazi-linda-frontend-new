@@ -11,7 +11,6 @@ import toast from 'react-hot-toast';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 
 const KL_BRAND = '#f39c12';
-const KL_BRAND_LIGHT = '#fef9e7';
 
 const Register = () => {
   const [form, setForm] = useState({ 
@@ -433,7 +432,6 @@ const styles = {
     fontSize: 14, lineHeight: 2.2, color: '#65676b',
   },
   statsCard: {
-    background: KL_BRAND_LIGHT, borderRadius: 12, padding: '20px',
     textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,.2)',
   },
   statNumber: { fontSize: 28, fontWeight: 700, color: KL_BRAND, marginBottom: 4, marginTop: 12 },
@@ -450,7 +448,6 @@ const styles = {
   },
   formHeader: { textAlign: 'center', marginBottom: 28 },
   headerIcon: {
-    width: 64, height: 64, borderRadius: '50%', background: KL_BRAND_LIGHT,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     margin: '0 auto 16px',
   },
@@ -477,7 +474,6 @@ const styles = {
     border: '1px solid #dddfe2', borderRadius: 10, background: '#fff',
     cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
   },
-  roleBtnActive: { background: KL_BRAND_LIGHT, borderColor: KL_BRAND },
   roleLabel: { fontSize: 14, fontWeight: 600, color: '#050505' },
   roleDesc: { fontSize: 12, color: '#65676b' },
   registerBtn: {
@@ -519,7 +515,6 @@ const styles = {
   },
   testimonialAuthor: { fontSize: 12, color: '#65676b', marginTop: 8 },
   securityCard: {
-    background: `linear-gradient(135deg, ${KL_BRAND_LIGHT} 0%, #fff 100%)`,
     borderRadius: 12, padding: '20px', textAlign: 'center',
   },
 };

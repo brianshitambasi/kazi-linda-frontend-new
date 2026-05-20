@@ -11,7 +11,6 @@ import ClickableAvatar from '../components/Common/ClickableAvatar';
 import FollowButton from '../components/Common/FollowButton';
 
 const KL_BRAND = '#f39c12';
-const KL_BRAND_LIGHT = '#fef9e7';
 
 const Discover = () => {
   const { user, token } = useAuth();
@@ -153,7 +152,6 @@ const styles = {
   logoText: { color: '#fff', fontWeight: 900, fontSize: 18 }, searchBox: { position: 'relative' }, searchIcon: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676b' },
   searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240 },
   navTab: { width: 100, height: 48, background: 'transparent', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', textDecoration: 'none' },
-  navTabActive: { background: KL_BRAND_LIGHT }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: KL_BRAND },
   navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer' }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, padding: '1px 5px' },
   body: { display: 'flex', paddingTop: 56, maxWidth: 1400, margin: '0 auto' }, leftSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
@@ -161,7 +159,6 @@ const styles = {
   sidebarSectionTitle: { fontSize: 15, fontWeight: 700, color: '#65676b', padding: '8px 8px' }, sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', borderRadius: 8, border: 'none', background: 'transparent', width: '100%', fontSize: 14 },
   sidebarFooter: { fontSize: 11, color: '#65676b', padding: 8, textAlign: 'center' }, feedCol: { flex: 1, maxWidth: 680, margin: '0 16px', padding: '16px 0', minWidth: 0 },
   headerCard: { background: '#fff', borderRadius: 12, padding: '20px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 },
-  headerIcon: { width: 56, height: 56, borderRadius: '50%', background: KL_BRAND_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 700 }, headerDesc: { fontSize: 13, color: '#65676b' },
   filterBar: { background: '#fff', borderRadius: 12, padding: '16px', marginBottom: 16 }, filterGroup: { position: 'relative', marginBottom: 12 },
   filterIcon: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676b' }, filterInput: { width: '100%', padding: '10px 12px 10px 36px', border: '1px solid #dddfe2', borderRadius: 8 },
@@ -177,7 +174,6 @@ const styles = {
   rightCard: { background: '#fff', borderRadius: 12, padding: '16px', marginBottom: 16 }, rightCardHeader: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #dddfe2' },
   networkStat: { display: 'flex', justifyContent: 'space-around', textAlign: 'center' }, networkNumber: { fontSize: 24, fontWeight: 700, color: KL_BRAND },
   countryList: { display: 'flex', flexDirection: 'column', gap: 8 }, countryItem: { display: 'flex', justifyContent: 'space-between', padding: '8px', borderRadius: 8, border: 'none', background: 'transparent', fontSize: 14, cursor: 'pointer' },
-  countryCount: { marginLeft: 'auto', background: '#e4e6eb', color: '#050505' }, tipsCard: { background: KL_BRAND_LIGHT, borderRadius: 12, padding: '16px', marginBottom: 16 },
 };
 
 export default Discover;

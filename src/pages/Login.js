@@ -6,7 +6,6 @@ import { FaEnvelope, FaLock, FaSignInAlt, FaHome, FaSearch, FaBell, FaFacebookMe
 import toast from 'react-hot-toast';
 
 const KL_BRAND = '#f39c12';
-const KL_BRAND_LIGHT = '#fef9e7';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -79,11 +78,9 @@ const styles = {
   registerBtn: { background: KL_BRAND, color: '#fff', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontSize: 14, fontWeight: 600 },
   body: { display: 'flex', paddingTop: 56, maxWidth: 1200, margin: '0 auto' }, leftSidebar: { width: 260, flexShrink: 0, padding: '20px 12px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
   benefitsCard: { background: '#fff', borderRadius: 12, padding: '20px', marginBottom: 20 }, feedCol: { flex: 1, maxWidth: 400, margin: '0 16px', padding: '20px 0', minWidth: 0 },
-  formCard: { background: '#fff', borderRadius: 12, padding: '28px' }, formHeader: { textAlign: 'center', marginBottom: 28 }, headerIcon: { width: 64, height: 64, borderRadius: '50%', background: KL_BRAND_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' },
   formTitle: { fontSize: 28, fontWeight: 700, marginBottom: 8 }, formSubtitle: { fontSize: 14, color: '#65676b' }, formGroup: { marginBottom: 20 },
   loginBtn: { background: KL_BRAND, border: 'none', borderRadius: 8, padding: '12px', fontSize: 16, fontWeight: 700, width: '100%', marginTop: 8, color: '#fff' },
   loginLink: { textAlign: 'center', fontSize: 14, marginTop: 16 }, rightSidebar: { width: 300, flexShrink: 0, padding: '20px 12px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
-  testimonialCard: { background: '#fff', borderRadius: 12, padding: '20px', marginBottom: 20 }, securityCard: { background: KL_BRAND_LIGHT, borderRadius: 12, padding: '20px', textAlign: 'center' },
 };
 
 export default Login;

@@ -12,7 +12,6 @@ import toast from 'react-hot-toast';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 
 const KL_BRAND = '#f39c12';
-const KL_BRAND_LIGHT = '#fef9e7';
 
 const Friends = () => {
   const { user, token } = useAuth();
@@ -235,18 +234,15 @@ const styles = {
   logoText: { color: '#fff', fontWeight: 900, fontSize: 18, fontStyle: 'italic' }, searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
   searchIcon: { position: 'absolute', left: 12, color: '#65676b', fontSize: 14 }, searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 36px', fontSize: 15, outline: 'none', width: 240, color: '#050505' },
   navTab: { width: 100, height: 48, border: 'none', background: 'transparent', borderRadius: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', textDecoration: 'none' },
-  navTabActive: { background: KL_BRAND_LIGHT }, navTabLine: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: KL_BRAND, borderRadius: '2px 2px 0 0' },
   navIconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer' }, navIconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px' },
   body: { display: 'flex', paddingTop: 56, maxWidth: 1440, margin: '0 auto' }, leftSidebar: { width: 280, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
   sidebarProfileLink: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, textDecoration: 'none', color: '#050505', fontWeight: 500, fontSize: 15 },
   sidebarNavItem: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', textAlign: 'left', fontWeight: 500, fontSize: 15, color: '#050505' },
-  sidebarNavItemActive: { background: KL_BRAND_LIGHT }, sidebarIconWrap: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   sidebarLinkText: { fontSize: 15, fontWeight: 500, color: '#050505', flex: 1 }, sidebarCount: { fontSize: 13, color: '#65676b' }, sidebarDivider: { borderTop: '1px solid #dddfe2', margin: '8px 0' },
   sidebarSectionTitle: { fontSize: 17, fontWeight: 700, color: '#65676b', padding: '8px 8px' }, sidebarFooter: { fontSize: 12, color: '#65676b', padding: 8, lineHeight: 1.8 },
   activityItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', fontSize: 13, color: '#65676b' }, feedCol: { flex: 1, maxWidth: 680, margin: '0 16px', padding: '16px 0', minWidth: 0 },
   headerCard: { background: '#fff', borderRadius: 12, padding: '20px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,.2)' },
-  headerIcon: { width: 64, height: 64, borderRadius: '50%', background: KL_BRAND_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 24, fontWeight: 700, marginBottom: 4, color: '#050505' }, headerDesc: { fontSize: 14, color: '#65676b', margin: 0 },
   tabsContainer: { display: 'flex', gap: 8, marginBottom: 16, borderBottom: '1px solid #dddfe2', padding: '0 4px' },
   tab: { padding: '12px 16px', border: 'none', background: 'transparent', fontSize: 15, fontWeight: 600, color: '#65676b', cursor: 'pointer', position: 'relative' },

@@ -1,3 +1,4 @@
+import rateLimiter from "../utils/rateLimit";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Spinner, Modal } from 'react-bootstrap';
@@ -8,14 +9,30 @@ import {
   FaMapMarkerAlt, FaEnvelope, FaEdit, FaCamera, FaThumbsUp, FaComment,
   FaShare, FaEllipsisH, FaHeart, FaBell, FaSearch, FaUsers,
   FaBriefcase, FaGlobe, FaUserCircle, FaHome,
-  FaFacebookMessenger, FaBriefcase as FaWork
+  FaFacebookMessenger, FaBriefcase as FaWork, FaLeaf
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import moment from 'moment';
+import Logo from '../components/Common/Logo';
 
-const KL_BRAND = '#f39c12';
-const KL_LIGHT = '#fef9e7';
-const KL_BG = '#f0f2f5';
+// Eco-friendly color palette
+const colors = {
+  primary: '#2E7D32',
+  secondary: '#4CAF50',
+  accent: '#81C784',
+  warning: '#FFC107',
+  danger: '#F44336',
+  dark: '#1B5E20',
+  light: '#E8F5E9',
+  gradient: 'linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #4CAF50 100%)',
+  gradientLight: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+  text: '#1B5E20',
+  textLight: '#fff',
+  border: '#A5D6A7'
+};
+
+const KL_BRAND = colors.primary;
+const KL_BG = colors.gradientLight;
 
 const Profile = () => {
   const { userId } = useParams();
@@ -43,20 +60,27 @@ const Profile = () => {
       const id = userId || user?._id;
       console.log('Fetching profile for ID:', id);
       
-      const res = await fetch(`https://kazi-linda.onrender.com/api/profile/public/${id}`, {
+      const res = await rateLimiter.fetch(`https://kazi-linda.onrender.com/api/profile/public/${id}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       
       if (!res.ok) throw new Error('Profile not found');
+      if (res.status === 429) {
+        console.log("Rate limited, waiting 5 seconds...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return fetchProfile();
+      }
       const data = await res.json();
       console.log('Profile data received:', data);
       
       setProfile(data);
+      console.log("Followers from API:", data.followers);
+      console.log("Followers count:", data.followers?.length);
       
       const followers = data.followers || [];
       const following = data.following || [];
-      setFollowersCount(followers.length);
-      setFollowingCount(following.length);
+      setFollowersCount(Array.isArray(followers) ? followers.length : 0);
+      setFollowingCount(Array.isArray(following) ? following.length : 0);
       
       console.log('Followers count:', followers.length, 'Following count:', following.length);
     } catch (err) {
@@ -72,7 +96,7 @@ const Profile = () => {
     setPostsLoading(true);
     try {
       const id = userId || user?._id;
-      const res = await fetch(`https://kazi-linda.onrender.com/api/social/user-posts/${id}`, {
+      const res = await rateLimiter.fetch(`https://kazi-linda.onrender.com/api/social/user-posts/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -206,7 +230,7 @@ const Profile = () => {
   const displayName = profile.name || 'KaziLinda User';
   const firstName = displayName.split(' ')[0];
   const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  const roleColor = { worker: '#31a24c', employer: '#1877f2', recruiter: '#7c3aed', embassy: '#e41e3f' }[profile.role] || KL_BRAND;
+  const roleColor = { worker: colors.secondary, employer: colors.primary, recruiter: colors.accent, embassy: colors.warning }[profile.role] || KL_BRAND;
 
   const TABS = [
     { id: 'posts', label: `Posts (${posts.length})` },
@@ -219,7 +243,7 @@ const Profile = () => {
       {/* NAVBAR */}
       <nav style={s.nav}>
         <div style={s.navLeft}>
-          <Link to="/" style={s.logoBox}><span style={s.logoText}>KL</span></Link>
+          <Logo size={36} />
           <div style={{ position: 'relative' }}>
             <FaSearch style={s.searchIcon} size={13} />
             <input style={s.searchInput} placeholder="Search KaziLinda…" />
@@ -232,8 +256,8 @@ const Profile = () => {
             { to: '/jobs', icon: FaBriefcase, label: 'Jobs' },
             { to: '/news', icon: FaUsers, label: 'Feed' },
           ].map(t => (
-            <Link key={t.to} to={t.to} style={s.navTab} title={t.label}>
-              <t.icon size={22} color="#65676b" />
+            <Link key={t.to} to={t.to} style={{ ...s.navTab, ...(window.location.pathname === t.to ? s.navTabActive : {}) }} title={t.label}>
+              <t.icon size={22} style={{ color: window.location.pathname === t.to ? KL_BRAND : '#65676b' }} />
             </Link>
           ))}
         </div>
@@ -258,7 +282,7 @@ const Profile = () => {
           {profile?.coverPhoto ? (
             <img src={profile.coverPhoto} alt="Cover" style={s.coverImage} />
           ) : (
-            <div style={s.coverGradient} />
+            <div style={{ ...s.coverGradient, background: colors.gradient }} />
           )}
           {isOwnProfile && coverHover && (
             <>
@@ -284,7 +308,7 @@ const Profile = () => {
               {profile.profilePicture ? (
                 <img src={profile.profilePicture} alt={displayName} style={s.profileAvatarImg} />
               ) : (
-                <div style={s.profileAvatarFallback}>{initials}</div>
+                <div style={{ ...s.profileAvatarFallback, background: colors.gradient }}>{initials}</div>
               )}
             </div>
             <div style={s.profileMeta}>
@@ -311,11 +335,11 @@ const Profile = () => {
               {!isOwnProfile && (
                 <FollowButton userId={profile._id} isFollowingProp={isFollowing} onFollowChange={handleFollowChange} token={token} />
               )}
-              <Link to={`/messages?user=${profile._id}`} style={s.msgBtn}>
+              <Link to={`/messages?user=${profile._id}`} style={{ ...s.msgBtn, background: colors.light, color: colors.text }}>
                 <FaEnvelope size={15} style={{ marginRight: 6 }} /> Message
               </Link>
               {isOwnProfile && (
-                <Link to="/profile/edit" style={s.editBtn}>
+                <Link to="/profile/edit" style={{ ...s.editBtn, background: colors.gradient, border: 'none' }}>
                   <FaEdit size={15} style={{ marginRight: 6 }} /> Edit Profile
                 </Link>
               )}
@@ -351,7 +375,7 @@ const Profile = () => {
               )}
               {profile.currentCountry && (
                 <div style={s.introItem}>
-                  <FaMapMarkerAlt size={14} color="#65676b" />
+                  <FaMapMarkerAlt size={14} color={colors.primary} />
                   <span>Lives in <strong>{profile.currentCountry}</strong></span>
                 </div>
               )}
@@ -362,12 +386,12 @@ const Profile = () => {
               <div style={s.sideCardTitle}>Skills</div>
               <div style={s.skillsWrap}>
                 {profile.skills.map(skill => (
-                  <span key={skill} style={s.skillTag}>{skill}</span>
+                  <span key={skill} style={{ ...s.skillTag, background: colors.light, color: colors.primary, borderColor: colors.accent }}>{skill}</span>
                 ))}
               </div>
             </div>
           )}
-          <div style={s.sidebarFooter}>© {new Date().getFullYear()} KaziLinda</div>
+          <div style={s.sidebarFooter}><FaLeaf /> © {new Date().getFullYear()} KaziLinda</div>
         </aside>
 
         {/* MAIN FEED */}
@@ -430,7 +454,7 @@ const Profile = () => {
                   <div style={s.aboutRow}>
                     <span style={s.aboutKey}>Skills</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, flex: 1 }}>
-                      {profile.skills.map(sk => <span key={sk} style={s.skillTag}>{sk}</span>)}
+                      {profile.skills.map(sk => <span key={sk} style={{ ...s.skillTag, background: colors.light, color: colors.primary }}>{sk}</span>)}
                     </div>
                   </div>
                 )}
@@ -454,7 +478,7 @@ const Profile = () => {
           {followersCount > 0 && (
             <div style={s.sideCard}>
               <div style={s.sideCardTitle}>Followers <span style={s.sideCardCount}>{followersCount}</span></div>
-              <button style={s.viewAllBtn} onClick={fetchFollowers}>View all followers</button>
+              <button style={{ ...s.viewAllBtn, background: colors.light, color: colors.text }} onClick={fetchFollowers}>View all followers</button>
             </div>
           )}
         </aside>
@@ -462,15 +486,15 @@ const Profile = () => {
 
       {/* MODALS */}
       <Modal show={showFollowersModal} onHide={() => setShowFollowersModal(false)} centered>
-        <Modal.Header closeButton style={s.modalHeader}>
-          <Modal.Title style={{ fontWeight: 700 }}>Followers ({followersList.length})</Modal.Title>
+        <Modal.Header closeButton style={{ ...s.modalHeader, borderBottomColor: colors.border }}>
+          <Modal.Title style={{ fontWeight: 700, color: colors.text }}>Followers ({followersList.length})</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ maxHeight: 420, overflowY: 'auto' }}>
           {followersList.length === 0 ? <div style={s.modalEmpty}>No followers yet</div> :
             followersList.map(f => (
               <div key={f._id} style={s.modalUserRow}>
                 <ClickableAvatar userId={f._id} src={f.profilePicture} name={f.name} size={42} />
-                <Link to={`/profile/${f._id}`} style={s.modalUserName} onClick={() => setShowFollowersModal(false)}>{f.name}</Link>
+                <Link to={`/profile/${f._id}`} style={{ ...s.modalUserName, color: colors.text }} onClick={() => setShowFollowersModal(false)}>{f.name}</Link>
               </div>
             ))
           }
@@ -478,15 +502,15 @@ const Profile = () => {
       </Modal>
 
       <Modal show={showFollowingModal} onHide={() => setShowFollowingModal(false)} centered>
-        <Modal.Header closeButton style={s.modalHeader}>
-          <Modal.Title style={{ fontWeight: 700 }}>Following ({followingList.length})</Modal.Title>
+        <Modal.Header closeButton style={{ ...s.modalHeader, borderBottomColor: colors.border }}>
+          <Modal.Title style={{ fontWeight: 700, color: colors.text }}>Following ({followingList.length})</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ maxHeight: 420, overflowY: 'auto' }}>
           {followingList.length === 0 ? <div style={s.modalEmpty}>Not following anyone yet</div> :
             followingList.map(f => (
               <div key={f._id} style={s.modalUserRow}>
                 <ClickableAvatar userId={f._id} src={f.profilePicture} name={f.name} size={42} />
-                <Link to={`/profile/${f._id}`} style={s.modalUserName} onClick={() => setShowFollowingModal(false)}>{f.name}</Link>
+                <Link to={`/profile/${f._id}`} style={{ ...s.modalUserName, color: colors.text }} onClick={() => setShowFollowingModal(false)}>{f.name}</Link>
               </div>
             ))
           }
@@ -499,61 +523,60 @@ const Profile = () => {
 const s = {
   page: { background: KL_BG, minHeight: '100vh', fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif", color: '#050505' },
   fullCenter: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: KL_BG },
-  loadingLogo: { width: 60, height: 60, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24 },
-  primaryBtn: { display: 'inline-block', marginTop: 20, background: KL_BRAND, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
-  nav: { position: 'fixed', top: 0, left: 0, right: 0, height: 56, background: '#fff', borderBottom: '1px solid #dddfe2', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 300, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
+  loadingLogo: { width: 60, height: 60, borderRadius: '50%', background: colors.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24 },
+  primaryBtn: { display: 'inline-block', marginTop: 20, background: colors.gradient, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
+  nav: { position: 'fixed', top: 0, left: 0, right: 0, height: 56, background: '#fff', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', zIndex: 300, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
   navLeft: { display: 'flex', alignItems: 'center', gap: 8 },
   navCenter: { display: 'flex', gap: 2 },
   navRight: { display: 'flex', alignItems: 'center', gap: 8 },
-  logoBox: { width: 40, height: 40, borderRadius: '50%', background: KL_BRAND, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
-  logoText: { color: '#fff', fontWeight: 900, fontSize: 17, fontStyle: 'italic' },
+  navTabActive: { background: colors.light },
   searchIcon: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676b', pointerEvents: 'none' },
-  searchInput: { background: '#f0f2f5', border: 'none', borderRadius: 20, padding: '8px 16px 8px 34px', fontSize: 15, outline: 'none', width: 220, color: '#050505' },
+  searchInput: { background: colors.light, border: 'none', borderRadius: 20, padding: '8px 16px 8px 34px', fontSize: 15, outline: 'none', width: 220, color: '#050505' },
   navTab: { width: 90, height: 48, background: 'transparent', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' },
   iconBtn: { position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 },
-  iconInner: { width: 40, height: 40, borderRadius: '50%', background: '#e4e6eb', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 0, right: 0, background: '#e41e3f', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
+  iconInner: { width: 40, height: 40, borderRadius: '50%', background: colors.light, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: 0, right: 0, background: colors.danger, color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 5px', minWidth: 18, textAlign: 'center' },
   coverWrap: { paddingTop: 56 },
-  coverPhoto: { height: 350, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: 16, background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' },
+  coverPhoto: { height: 350, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: 16, background: colors.gradient },
   coverImage: { width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 },
-  coverGradient: { width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' },
+  coverGradient: { width: '100%', height: '100%', background: colors.gradient },
   editCoverBtn: { display: 'flex', alignItems: 'center', background: '#fff', color: '#050505', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 600, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.2)', zIndex: 1 },
-  profileBar: { background: '#fff', borderBottom: '1px solid #dddfe2', boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
+  profileBar: { background: '#fff', borderBottom: `1px solid ${colors.border}`, boxShadow: '0 2px 4px rgba(0,0,0,.08)' },
   profileBarInner: { maxWidth: 1100, margin: '0 auto', padding: '0 24px 16px', display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap', position: 'relative' },
   profileAvatarWrap: { position: 'relative', marginTop: -60, flexShrink: 0 },
   profileAvatarImg: { width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,.2)' },
-  profileAvatarFallback: { width: 120, height: 120, borderRadius: '50%', background: KL_BRAND, border: '4px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 40, boxShadow: '0 2px 8px rgba(0,0,0,.2)' },
+  profileAvatarFallback: { width: 120, height: 120, borderRadius: '50%', background: colors.gradient, border: '4px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 40, boxShadow: '0 2px 8px rgba(0,0,0,.2)' },
   profileMeta: { flex: 1, paddingBottom: 4 },
-  profileName: { fontSize: 30, fontWeight: 800, marginBottom: 4, color: '#050505' },
+  profileName: { fontSize: 30, fontWeight: 800, marginBottom: 4, color: colors.text },
   profileRoleBadge: { display: 'inline-block', borderRadius: 20, padding: '3px 12px', fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: 'capitalize' },
   profileStats: { display: 'flex', gap: 20 },
-  profileStatItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', fontSize: 15, fontWeight: 700 },
+  profileStatItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', fontSize: 15, fontWeight: 700, color: colors.text },
   profileStatLabel: { fontSize: 13, color: '#65676b', fontWeight: 400 },
   profileActions: { display: 'flex', gap: 10, alignItems: 'center', paddingBottom: 4 },
-  msgBtn: { display: 'inline-flex', alignItems: 'center', background: '#e4e6eb', color: '#050505', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
-  editBtn: { display: 'inline-flex', alignItems: 'center', background: KL_BRAND, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
-  tabsRow: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 4, borderTop: '1px solid #dddfe2' },
+  msgBtn: { display: 'inline-flex', alignItems: 'center', background: colors.light, color: colors.text, border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
+  editBtn: { display: 'inline-flex', alignItems: 'center', background: colors.gradient, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer' },
+  tabsRow: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 4, borderTop: `1px solid ${colors.border}` },
   tab: { padding: '14px 16px', border: 'none', background: 'transparent', fontSize: 15, fontWeight: 600, color: '#65676b', cursor: 'pointer', position: 'relative', borderRadius: '8px 8px 0 0' },
-  tabActive: { color: KL_BRAND, borderBottom: `3px solid ${KL_BRAND}` },
+  tabActive: { color: colors.primary, borderBottom: `3px solid ${colors.primary}` },
   body: { display: 'flex', maxWidth: 1100, margin: '20px auto', padding: '0 16px', gap: 16 },
   leftSidebar: { width: 280, flexShrink: 0, position: 'sticky', top: 72, height: 'fit-content' },
-  sideCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', padding: '16px 16px', marginBottom: 16 },
-  sideCardTitle: { fontSize: 18, fontWeight: 700, color: '#050505', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  sideCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', padding: '16px 16px', marginBottom: 16, border: `1px solid ${colors.border}` },
+  sideCardTitle: { fontSize: 18, fontWeight: 700, color: colors.text, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   sideCardCount: { fontSize: 14, color: '#65676b', fontWeight: 400 },
   bioText: { fontSize: 15, color: '#050505', lineHeight: 1.6, marginBottom: 12 },
   introList: { display: 'flex', flexDirection: 'column', gap: 10 },
   introItem: { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#050505' },
   skillsWrap: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-  skillTag: { background: KL_LIGHT, color: '#d68910', border: '1px solid #f7c96633', borderRadius: 20, padding: '4px 12px', fontSize: 13, fontWeight: 600 },
+  skillTag: { background: colors.light, color: colors.primary, border: `1px solid ${colors.accent}`, borderRadius: 20, padding: '4px 12px', fontSize: 13, fontWeight: 600 },
   sidebarFooter: { fontSize: 12, color: '#65676b', textAlign: 'center', padding: '8px 0' },
-  viewAllBtn: { width: '100%', background: '#e4e6eb', color: '#050505', border: 'none', borderRadius: 8, padding: '8px 0', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginTop: 8 },
+  viewAllBtn: { width: '100%', background: colors.light, color: colors.text, border: 'none', borderRadius: 8, padding: '8px 0', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginTop: 8 },
   feedCol: { flex: 1, minWidth: 0 },
   centerSpinner: { textAlign: 'center', padding: 48 },
   emptyCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', textAlign: 'center', padding: '48px 24px' },
-  postCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', marginBottom: 16, overflow: 'hidden' },
+  postCard: { background: '#fff', borderRadius: 10, boxShadow: '0 1px 2px rgba(0,0,0,.15)', marginBottom: 16, overflow: 'hidden', border: `1px solid ${colors.border}` },
   postHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px 0' },
   postAuthorRow: { display: 'flex', alignItems: 'center' },
-  postAuthorName: { fontWeight: 700, fontSize: 15, color: '#050505', textDecoration: 'none', display: 'block' },
+  postAuthorName: { fontWeight: 700, fontSize: 15, color: colors.text, textDecoration: 'none', display: 'block' },
   postMeta: { fontSize: 13, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
   moreBtn: { width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   postContent: { padding: '10px 16px 12px', fontSize: 15, lineHeight: 1.5, color: '#050505' },
@@ -564,14 +587,14 @@ const s = {
   postActions: { display: 'flex', padding: '4px 8px' },
   postActionBtn: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#65676b', borderRadius: 4 },
   aboutSection: { padding: '16px 20px' },
-  aboutTitle: { fontSize: 20, fontWeight: 700, marginBottom: 20, color: '#050505' },
-  aboutRow: { display: 'flex', gap: 16, padding: '12px 0', borderBottom: '1px solid #f0f2f5', alignItems: 'flex-start' },
+  aboutTitle: { fontSize: 20, fontWeight: 700, marginBottom: 20, color: colors.text },
+  aboutRow: { display: 'flex', gap: 16, padding: '12px 0', borderBottom: `1px solid ${colors.light}`, alignItems: 'flex-start' },
   aboutKey: { minWidth: 120, fontSize: 14, fontWeight: 700, color: '#65676b', flexShrink: 0 },
   aboutVal: { fontSize: 15, color: '#050505', flex: 1 },
   rightSidebar: { width: 280, flexShrink: 0, position: 'sticky', top: 72, height: 'fit-content' },
-  modalHeader: { borderBottom: '1px solid #dddfe2' },
-  modalUserRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: '1px solid #f0f2f5' },
-  modalUserName: { fontSize: 15, fontWeight: 600, color: '#050505', textDecoration: 'none' },
+  modalHeader: { borderBottom: `1px solid ${colors.border}` },
+  modalUserRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', borderBottom: `1px solid ${colors.light}` },
+  modalUserName: { fontSize: 15, fontWeight: 600, color: colors.text, textDecoration: 'none' },
   modalEmpty: { textAlign: 'center', padding: '32px 16px', color: '#65676b', fontSize: 15 },
 };
 

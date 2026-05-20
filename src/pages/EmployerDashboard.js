@@ -2,22 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { jobAPI } from '../services/api';
 import { Card, Button, Form, Table, Modal, Spinner, Badge, Row, Col } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaUsers, FaEye } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import DashboardLayout from '../components/Layout/DashboardLayout';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
-import ApplicationsManager from '../components/Employer/ApplicationsManager';
 import toast from 'react-hot-toast';
-
-const KL_BRAND = '#f39c12';
-
 
 const EmployerDashboard = () => {
   const { user, token } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showApps, setShowApps] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState(null);
   const [editingJob, setEditingJob] = useState(null);
   const [formData, setFormData] = useState({ title: '', description: '', country: 'Saudi Arabia', city: '', salary: '', salaryCurrency: 'SAR', contractDuration: 24,
   accommodation: "provided",
@@ -89,100 +83,48 @@ const EmployerDashboard = () => {
           <ClickableAvatar userId={user._id} src={user.profilePicture} name={user.name} size={50} />
           <h1>Manage Jobs</h1>
         </div>
-        <div>
-          <Button 
-            variant="outline-primary" 
-            className="me-2" 
-            onClick={() => setShowApps(true)}
-            style={{ borderRadius: 50, padding: '10px 20px' }}
-          >
-            <FaUsers className="me-2" /> View All Applications
-          </Button>
-          <Button variant="warning" onClick={() => { resetForm(); setEditingJob(null); setShowModal(true); }} style={{ borderRadius: 50, padding: '10px 20px' }}>
-            <FaPlus className="me-2" /> Post New Job
-          </Button>
-        </div>
+        <Button variant="warning" onClick={() => { resetForm(); setEditingJob(null); setShowModal(true); }}><FaPlus /> Post New Job</Button>
       </div>
 
       {jobs.length === 0 ? (
         <Card className="text-center py-5"><Card.Body><p>No jobs yet.</p><Button variant="warning" onClick={() => { resetForm(); setShowModal(true); }}>Post Your First Job</Button></Card.Body></Card>
       ) : (
         <Table striped bordered hover responsive className="shadow-sm">
-          <thead className="bg-dark text-white"><tr>
-            <th>Title</th>
-            <th>Country</th>
-            <th>Salary</th>
-            <th>Applications</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-          </thead>
-          <tbody>
-            {jobs.map(job => (
-              <tr key={job._id}>
-                <td className="fw-semibold">{job.title}</td>
-                <td>{job.country}</td>
-                <td>{job.salary?.toLocaleString()} {job.salaryCurrency}</td>
-                <td>
-                  <Button 
-                    size="sm" 
-                    variant="link" 
-                    className="p-0 text-decoration-none"
-                    onClick={() => { setSelectedJobId(job._id); setShowApps(true); }}
-                  >
-                    <FaEye className="me-1" /> View Applications
-                  </Button>
-                </td>
-                <td><Badge bg={job.isActive ? 'success' : 'secondary'}>{job.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                <td>
-                  <Button size="sm" variant="outline-warning" className="me-2" onClick={() => { setEditingJob(job); setFormData(job); setShowModal(true); }}><FaEdit /></Button>
-                  <Button size="sm" variant="outline-danger" onClick={() => handleDelete(job._id)}><FaTrash /></Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <thead className="bg-dark text-white"><tr><th>Title</th><th>Country</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>{jobs.map(job => (<tr key={job._id}><td>{job.title}</td><td>{job.country}</td><td>{job.salary} {job.salaryCurrency}</td><td><Badge bg={job.isActive ? 'success' : 'secondary'}>{job.isActive ? 'Active' : 'Inactive'}</Badge></td>
+          <td><Button size="sm" variant="outline-warning" className="me-2" onClick={() => { setEditingJob(job); setFormData(job); setShowModal(true); }}><FaEdit /></Button><Button size="sm" variant="outline-danger" onClick={() => handleDelete(job._id)}><FaTrash /></Button></td></tr>))}</tbody>
         </Table>
       )}
 
-      {/* Post/Edit Job Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton style={{ background: KL_BRAND, color: 'white' }}>
-          <Modal.Title>{editingJob ? 'Edit Job' : 'Post New Job'}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <Row>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Title *</Form.Label><Form.Control value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Country *</Form.Label><Form.Control value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></Form.Group></Col>
-            </Row>
-            <Form.Group className="mb-3"><Form.Label>Description *</Form.Label><Form.Control as="textarea" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required /></Form.Group>
-            <Row>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Requirements</Form.Label><div className="d-flex gap-2"><Form.Control value={reqInput} onChange={e => setReqInput(e.target.value)} /><Button type="button" onClick={addRequirement}>Add</Button></div><div className="d-flex flex-wrap gap-2 mt-2">{formData.requirements.map((r, i) => (<Badge key={i} bg="secondary" className="cursor-pointer" onClick={() => removeRequirement(i)}>{r} ✕</Badge>))}</div></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Benefits</Form.Label><div className="d-flex gap-2"><Form.Control value={benefitInput} onChange={e => setBenefitInput(e.target.value)} /><Button type="button" onClick={addBenefit}>Add</Button></div><div className="d-flex flex-wrap gap-2 mt-2">{formData.benefits.map((b, i) => (<Badge key={i} bg="success" className="cursor-pointer" onClick={() => removeBenefit(i)}>{b} ✕</Badge>))}</div></Form.Group></Col>
-            </Row>
-            <Row>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Accommodation</Form.Label><Form.Select value={formData.accommodation} onChange={e => setFormData({...formData, accommodation: e.target.value})}><option value="provided">✅ Provided</option><option value="allowance">��� Allowance</option><option value="none">❌ Not Provided</option></Form.Select></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Food</Form.Label><Form.Select value={formData.food} onChange={e => setFormData({...formData, food: e.target.value})}><option value="provided">✅ Provided</option><option value="allowance">��� Allowance</option><option value="none">❌ Not Provided</option></Form.Select></Form.Group></Col>
-            </Row>
-            <Row>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Salary *</Form.Label><Form.Control type="number" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} required /></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Contract Duration (months) *</Form.Label><Form.Control type="number" value={formData.contractDuration} onChange={e => setFormData({...formData, contractDuration: e.target.value})} required /></Form.Group></Col>
-            </Row>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button type="submit" style={{ background: KL_BRAND, border: 'none' }}>{editingJob ? 'Update Job' : 'Post Job'}</Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
-
-      {/* Applications Manager Modal */}
-      <ApplicationsManager 
-        show={showApps} 
-        onHide={() => { setShowApps(false); setSelectedJobId(null); }} 
-        jobId={selectedJobId}
-        onStatusChange={fetchMyJobs}
-      />
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg"><Modal.Header closeButton><Modal.Title>{editingJob ? 'Edit Job' : 'Post Job'}</Modal.Title></Modal.Header><Modal.Body>
+        <Form onSubmit={handleSubmit}><Row><Col md={6}><Form.Group><Form.Label>Title</Form.Label><Form.Control value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required /></Form.Group></Col><Col md={6}><Form.Group><Form.Label>Country</Form.Label><Form.Control value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required /></Form.Group></Col></Row>
+        <Form.Group><Form.Label>Description</Form.Label><Form.Control as="textarea" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required /></Form.Group>
+        <Row><Col md={6}><Form.Group><Form.Label>Requirements</Form.Label><div className="d-flex"><Form.Control value={reqInput} onChange={e => setReqInput(e.target.value)} /><Button type="button" onClick={addRequirement}>Add</Button></div><div className="d-flex flex-wrap gap-2 mt-2">{formData.requirements.map((r, i) => (<Badge key={i} bg="secondary" onClick={() => removeRequirement(i)}>{r} ✕</Badge>))}</div></Form.Group></Col>
+        <Col md={6}><Form.Group><Form.Label>Benefits</Form.Label><div className="d-flex"><Form.Control value={benefitInput} onChange={e => setBenefitInput(e.target.value)} /><Button type="button" onClick={addBenefit}>Add</Button></div><div className="d-flex flex-wrap gap-2 mt-2">{formData.benefits.map((b, i) => (<Badge key={i} bg="success" onClick={() => removeBenefit(i)}>{b} ✕</Badge>))}</div></Form.Group></Col></Row>
+        <Row>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Accommodation</Form.Label>
+              <Form.Select value={formData.accommodation} onChange={e => setFormData({...formData, accommodation: e.target.value})} required>
+                <option value="provided">Provided</option>
+                <option value="allowance">Allowance</option>
+                <option value="none">Not Provided</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group className="mb-3">
+              <Form.Label>Food</Form.Label>
+              <Form.Select value={formData.food} onChange={e => setFormData({...formData, food: e.target.value})} required>
+                <option value="provided">Provided</option>
+                <option value="allowance">Allowance</option>
+                <option value="none">Not Provided</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+        </Row>
+        <div className="d-flex justify-content-end gap-2 mt-3"><Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button><Button type="submit" style={{ background: '#f39c12', border: 'none' }}>{editingJob ? 'Update' : 'Post'}</Button></div></Form>
+      </Modal.Body></Modal>
     </DashboardLayout>
   );
 };
