@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Logo = ({ size = 40, variant = 'default', className = '' }) => {
+const Logo = ({ size = 40, variant = 'default', className = '', asLink = true }) => {
   const colors = {
     primary: '#2E7D32',
     secondary: '#4CAF50',
@@ -20,7 +20,6 @@ const Logo = ({ size = 40, variant = 'default', className = '' }) => {
         borderRadius: '12px',
         boxShadow: '0 4px 12px rgba(46,125,50,0.3)',
         transition: 'all 0.3s ease',
-        textDecoration: 'none'
       },
       text: {
         fontSize: size * 0.45,
@@ -39,7 +38,6 @@ const Logo = ({ size = 40, variant = 'default', className = '' }) => {
         height: size,
         background: 'transparent',
         borderRadius: '8px',
-        textDecoration: 'none'
       },
       text: {
         fontSize: size * 0.55,
@@ -62,7 +60,6 @@ const Logo = ({ size = 40, variant = 'default', className = '' }) => {
         background: '#1a1a2e',
         borderRadius: '12px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-        textDecoration: 'none'
       },
       text: {
         fontSize: size * 0.45,
@@ -76,6 +73,16 @@ const Logo = ({ size = 40, variant = 'default', className = '' }) => {
 
   const currentStyle = styles[variant] || styles.default;
 
+  // If asLink is false, just return the div
+  if (!asLink) {
+    return (
+      <div style={currentStyle.container} className={className}>
+        <span style={currentStyle.text}>KL</span>
+      </div>
+    );
+  }
+
+  // Otherwise return Link
   return (
     <Link to="/" style={currentStyle.container} className={className}>
       <span style={currentStyle.text}>KL</span>

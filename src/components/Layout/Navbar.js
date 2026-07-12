@@ -80,7 +80,7 @@ const Navbar = () => {
       <nav style={s.nav}>
         <div style={s.navLeft}>
           <Link to="/" style={s.logoBox}>
-            <Logo size={36} variant="minimal" />
+            <Logo size={36} variant="minimal" asLink={false} />
           </Link>
           <div style={s.searchBox}>
             <FaSearch style={s.searchIcon} />

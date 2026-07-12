@@ -6,7 +6,8 @@ import { Row, Card, Button, Spinner, Badge, Col } from "react-bootstrap";
 import { 
   FaMapMarkerAlt, FaMoneyBillWave, FaSearch, 
   FaHome, FaBell, FaFacebookMessenger, FaEllipsisH, FaUsers, 
-  FaShieldAlt, FaBriefcase, FaLeaf, FaClock, FaStar
+  FaShieldAlt, FaBriefcase, FaLeaf, FaClock, FaStar, FaBookmark,
+  FaRegBookmark
 } from 'react-icons/fa';
 import ClickableAvatar from '../components/Common/ClickableAvatar';
 import Logo from '../components/Common/Logo';
@@ -30,18 +31,19 @@ const colors = {
 const KL_BRAND = colors.primary;
 
 const Jobs = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [countries, setCountries] = useState([]);
   const [activeNav, setActiveNav] = useState('jobs');
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [bookmarkedJobs, setBookmarkedJobs] = useState([]);
 
-  useEffect(() => { fetchJobs(); }, []);
-
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       const res = await jobAPI.getAll();
       const jobsData = res.data.jobs || [];
@@ -51,16 +53,98 @@ const Jobs = () => {
       setCountries(uniqueCountries);
     } catch (err) { toast.error('Failed to load jobs'); } 
     finally { setLoading(false); }
-  };
+  }, []);
+
+  const fetchAppliedJobs = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('https://kazi-linda.onrender.com/api/applications/my-applications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setAppliedJobs(Array.isArray(data) ? data.map(app => app.jobId?._id) : []);
+    } catch (err) { console.error(err); }
+  }, [token]);
+
+  const fetchBookmarks = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('https://kazi-linda.onrender.com/api/bookmarks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setBookmarkedJobs(Array.isArray(data) ? data.map(job => job._id) : []);
+    } catch (err) { console.error(err); }
+  }, [token]);
+
+  useEffect(() => { 
+    fetchJobs(); 
+    if (user) {
+      fetchAppliedJobs();
+      fetchBookmarks();
+    }
+  }, [fetchJobs, fetchAppliedJobs, fetchBookmarks, user]);
 
   const filterJobs = useCallback(() => {
     let filtered = [...jobs];
-    if (searchTerm) filtered = filtered.filter(job => job.title?.toLowerCase().includes(searchTerm.toLowerCase()) || job.description?.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (searchTerm) filtered = filtered.filter(job => 
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      job.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     if (countryFilter) filtered = filtered.filter(job => job.country === countryFilter);
+    if (selectedCategory) filtered = filtered.filter(job => job.category === selectedCategory);
     setFilteredJobs(filtered);
-  }, [jobs, searchTerm, countryFilter]);
+  }, [jobs, searchTerm, countryFilter, selectedCategory]);
 
   useEffect(() => { filterJobs(); }, [filterJobs]);
+
+  const handleQuickApply = async (jobId) => {
+    if (!user) {
+      toast.error('Please login to apply');
+      return;
+    }
+    try {
+      const res = await fetch(`https://kazi-linda.onrender.com/api/applications/quick-apply/${jobId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        toast.success('Applied successfully!');
+        setAppliedJobs([...appliedJobs, jobId]);
+      } else {
+        const data = await res.json();
+        toast.error(data.message || 'Failed to apply');
+      }
+    } catch (err) {
+      toast.error('Error applying');
+    }
+  };
+
+  const handleBookmark = async (jobId) => {
+    if (!user) {
+      toast.error('Please login to save jobs');
+      return;
+    }
+    try {
+      const isBookmarked = bookmarkedJobs.includes(jobId);
+      const method = isBookmarked ? 'DELETE' : 'POST';
+      const res = await fetch(`https://kazi-linda.onrender.com/api/bookmarks/${jobId}`, {
+        method,
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        if (isBookmarked) {
+          setBookmarkedJobs(bookmarkedJobs.filter(id => id !== jobId));
+          toast.info('Bookmark removed');
+        } else {
+          setBookmarkedJobs([...bookmarkedJobs, jobId]);
+          toast.success('Job saved!');
+        }
+      }
+    } catch (err) {
+      toast.error('Error');
+    }
+  };
 
   const navTabs = [
     { id: 'home', icon: FaHome, label: 'Home', link: '/' },
@@ -69,13 +153,15 @@ const Jobs = () => {
     { id: 'community', icon: FaUsers, label: 'Community', link: '/social' },
   ];
 
+  const categories = ['All', 'Construction', 'Domestic', 'Driving', 'Nursing', 'Hospitality', 'Education', 'Security', 'Agriculture', 'Engineering', 'Technology'];
+
   if (loading) return <div style={styles.loadingWrap}><div style={styles.loadingLogo}>KL</div><Spinner animation="border" style={{ color: KL_BRAND, marginTop: 16 }} /></div>;
 
   return (
     <div style={styles.page}>
       <nav style={styles.nav}>
         <div style={styles.navLeft}>
-          <Logo size={36} />
+          <Logo size={36} variant="minimal" />
           <div style={styles.searchBox}><FaSearch style={styles.searchIcon} /><input style={styles.searchInput} placeholder="Search jobs..." /></div>
         </div>
         <div style={styles.navCenter}>{navTabs.map(tab => (<Link key={tab.id} to={tab.link} style={{ ...styles.navTab, ...(activeNav === tab.id ? styles.navTabActive : {}) }} onClick={() => setActiveNav(tab.id)}><tab.icon size={24} style={{ color: activeNav === tab.id ? KL_BRAND : '#65676b' }} />{activeNav === tab.id && <div style={styles.navTabLine} />}</Link>))}</div>
@@ -87,7 +173,11 @@ const Jobs = () => {
           <Link to={`/profile/${user?._id}`} style={styles.sidebarProfileLink}><ClickableAvatar userId={user?._id} src={user?.profilePicture} size={36} /><span>{user?.name}</span></Link>
           <div style={styles.sidebarDivider} />
           <div style={styles.sidebarSectionTitle}>Job Categories</div>
-          {['Construction', 'Domestic Work', 'Driving', 'Nursing', 'Hospitality'].map(cat => (<button key={cat} style={styles.sidebarNavItem}><FaBriefcase size={14} /> {cat}</button>))}
+          {categories.filter(c => c !== 'All').map(cat => (
+            <button key={cat} style={styles.sidebarNavItem} onClick={() => setSelectedCategory(cat.toLowerCase())}>
+              <FaBriefcase size={14} /> {cat}
+            </button>
+          ))}
           <div style={styles.sidebarDivider} />
           <div style={styles.sidebarFooter}><FaLeaf /> © {new Date().getFullYear()} KaziLinda</div>
         </aside>
@@ -103,29 +193,59 @@ const Jobs = () => {
             <select style={styles.filterSelect} value={countryFilter} onChange={e => setCountryFilter(e.target.value)}><option value="">All Countries</option>{countries.map(c => <option key={c} value={c}>{c}</option>)}</select>
           </div>
 
+          <div style={styles.categoryBar}>
+            {categories.map(cat => (
+              <button key={cat} style={{
+                ...styles.categoryBtn,
+                ...(selectedCategory === (cat === 'All' ? '' : cat.toLowerCase()) ? styles.categoryBtnActive : {})
+              }} onClick={() => setSelectedCategory(cat === 'All' ? '' : cat.toLowerCase())}>
+                {cat}
+              </button>
+            ))}
+          </div>
+
           {filteredJobs.length === 0 ? (
-            <div style={styles.emptyState}><FaBriefcase size={48} color={KL_BRAND} /><p>No jobs found</p><button style={styles.clearBtn} onClick={() => { setSearchTerm(''); setCountryFilter(''); }}>Clear filters</button></div>
+            <div style={styles.emptyState}><FaBriefcase size={48} color={KL_BRAND} /><p>No jobs found</p><button style={styles.clearBtn} onClick={() => { setSearchTerm(''); setCountryFilter(''); setSelectedCategory(''); }}>Clear filters</button></div>
           ) : (
             <Row style={styles.jobsGrid}>
-              {filteredJobs.map(job => (
-                <Col lg={6} xl={4} key={job._id} style={{ marginBottom: 20 }}>
-                  <Card style={styles.jobCard}>
-                    <div style={styles.cardHeader}>
-                      <h3 style={styles.jobTitle}>{job.title}</h3>
-                      {job.isVerified && <span style={styles.verifiedBadge}>✓ Verified</span>}
-                    </div>
-                    <p style={styles.jobDesc}>{job.description?.substring(0, 80)}...</p>
-                    <div style={styles.jobDetails}>
-                      <div style={styles.detailItem}><FaMapMarkerAlt size={12} /> {job.country}</div>
-                      <div style={styles.detailItem}><FaMoneyBillWave size={12} /> {job.salary} {job.salaryCurrency}</div>
-                      <div style={styles.detailItem}><FaClock size={12} /> {job.contractDuration} months</div>
-                    </div>
-                    <div style={styles.cardFooter}>
-                      <Button as={Link} to={`/jobs/${job._id}`} style={styles.jobBtn}>View Details</Button>
-                    </div>
-                  </Card>
-                </Col>
-              ))}
+              {filteredJobs.map(job => {
+                const isApplied = appliedJobs.includes(job._id);
+                const isBookmarked = bookmarkedJobs.includes(job._id);
+                return (
+                  <Col lg={6} xl={4} key={job._id} style={{ marginBottom: 20 }}>
+                    <Card style={styles.jobCard}>
+                      <div style={styles.cardHeader}>
+                        <h3 style={styles.jobTitle}>{job.title}</h3>
+                        {job.isVerified && <span style={styles.verifiedBadge}>✓ Verified</span>}
+                      </div>
+                      <p style={styles.jobDesc}>{job.description?.substring(0, 80)}...</p>
+                      <div style={styles.jobDetails}>
+                        <div style={styles.detailItem}><FaMapMarkerAlt size={12} /> {job.country}</div>
+                        <div style={styles.detailItem}><FaMoneyBillWave size={12} /> {job.salary} {job.salaryCurrency}</div>
+                        <div style={styles.detailItem}><FaClock size={12} /> {job.contractDuration} months</div>
+                      </div>
+                      <div style={styles.cardFooter}>
+                        <div style={styles.buttonGroup}>
+                          <Button as={Link} to={`/jobs/${job._id}`} style={styles.viewBtn}>View Details</Button>
+                          <Button 
+                            style={{ ...styles.quickApplyBtn, ...(isApplied ? styles.appliedBtn : {}) }}
+                            onClick={() => handleQuickApply(job._id)}
+                            disabled={isApplied}
+                          >
+                            {isApplied ? '✓ Applied' : '⚡ Quick Apply'}
+                          </Button>
+                        </div>
+                        <button 
+                          style={styles.bookmarkBtn}
+                          onClick={() => handleBookmark(job._id)}
+                        >
+                          {isBookmarked ? <FaBookmark color={colors.primary} /> : <FaRegBookmark />}
+                        </button>
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
             </Row>
           )}
         </main>
@@ -178,10 +298,13 @@ const styles = {
   headerCard: { background: '#fff', borderRadius: 12, padding: '20px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, border: `1px solid ${colors.border}` },
   headerIcon: { width: 56, height: 56, borderRadius: '50%', background: colors.light, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 22, fontWeight: 700, color: colors.text }, headerDesc: { fontSize: 13, color: '#65676b' },
-  filterBar: { display: 'flex', gap: 12, marginBottom: 24, background: '#fff', padding: '16px', borderRadius: 12, border: `1px solid ${colors.border}` },
+  filterBar: { display: 'flex', gap: 12, marginBottom: 16, background: '#fff', padding: '16px', borderRadius: 12, border: `1px solid ${colors.border}` },
   filterGroup: { flex: 2, position: 'relative' }, filterIcon: { position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#65676b' },
   filterInput: { width: '100%', padding: '10px 12px 10px 36px', border: `1px solid ${colors.border}`, borderRadius: 8 },
   filterSelect: { flex: 1, padding: '10px 12px', border: `1px solid ${colors.border}`, borderRadius: 8, background: '#fff' },
+  categoryBar: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' },
+  categoryBtn: { padding: '6px 16px', borderRadius: '20px', border: `1px solid ${colors.border}`, background: '#fff', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' },
+  categoryBtnActive: { background: colors.primary, color: '#fff', borderColor: colors.primary },
   jobsGrid: { margin: '0 -8px' },
   jobCard: { 
     height: '100%',
@@ -196,20 +319,18 @@ const styles = {
       boxShadow: '0 8px 24px rgba(46,125,50,0.15)'
     }
   },
-  cardHeader: { 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 12,
-    padding: '16px 16px 0 16px'
-  },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '16px 16px 0 16px' },
   jobTitle: { fontSize: 18, fontWeight: 700, margin: 0, color: colors.text },
   verifiedBadge: { background: colors.secondary, color: '#fff', padding: '2px 8px', borderRadius: 20, fontSize: 10, fontWeight: 500 },
   jobDesc: { fontSize: 13, color: '#65676b', marginBottom: 16, lineHeight: 1.5, padding: '0 16px' },
   jobDetails: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, padding: '0 16px' },
   detailItem: { fontSize: 12, color: '#65676b', display: 'flex', alignItems: 'center', gap: 4 },
-  cardFooter: { padding: '12px 16px 16px 16px', marginTop: 'auto' },
-  jobBtn: { background: colors.gradient, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 14, width: '100%', color: '#fff', fontWeight: 600, transition: 'opacity 0.2s' },
+  cardFooter: { padding: '12px 16px 16px 16px', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  buttonGroup: { display: 'flex', gap: '8px', flex: 1 },
+  viewBtn: { background: colors.light, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 10, padding: '6px 12px', fontSize: 13, flex: 1 },
+  quickApplyBtn: { background: colors.gradient, border: 'none', borderRadius: 10, padding: '6px 12px', fontSize: 13, color: '#fff', flex: 1 },
+  appliedBtn: { background: '#6c757d', cursor: 'default' },
+  bookmarkBtn: { background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '0 8px' },
   emptyState: { textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 12 },
   clearBtn: { background: colors.gradient, border: 'none', borderRadius: 6, padding: '8px 20px', marginTop: 16, color: '#fff' },
   rightSidebar: { width: 300, flexShrink: 0, padding: '12px 8px', position: 'sticky', top: 56, height: 'calc(100vh - 56px)', overflowY: 'auto' },
@@ -218,15 +339,5 @@ const styles = {
   countryItem: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 },
   tipCard: { background: colors.light, borderRadius: 12, padding: '16px', textAlign: 'center', border: `1px solid ${colors.accent}` },
 };
-
-// Add hover styles via style tag
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
-  .job-card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(46,125,50,0.15);
-  }
-`;
-document.head.appendChild(styleSheet);
 
 export default Jobs;
